@@ -1,0 +1,9 @@
+{
+  "hooks": {},
+  "permissions": {
+    "bash": "default",
+    "edit": "default",
+    "write": "default"
+  },
+  "defaultModel": "opus"
+}
