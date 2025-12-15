@@ -32,7 +32,7 @@
 
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
   <div class="px-6 py-4 border-b border-gray-100">
-    <h2 class="text-lg font-semibold text-gray-800">This Week</h2>
+    <h2 class="text-lg sm:text-xl font-semibold text-gray-800">This Week</h2>
   </div>
 
   <div class="grid grid-cols-7 divide-x divide-gray-100">

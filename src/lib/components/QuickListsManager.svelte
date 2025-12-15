@@ -10,9 +10,9 @@
   }
 </script>
 
-<div class="max-w-4xl mx-auto">
+<div class="max-w-[1800px] 3xl:max-w-[2400px] mx-auto px-2 sm:px-4 2xl:px-6">
   <div class="flex items-center justify-between mb-6">
-    <h2 class="text-2xl font-bold text-gray-800">Quick Lists</h2>
+    <h2 class="text-xl sm:text-2xl font-bold text-gray-800">Quick Lists</h2>
     <button
       type="button"
       onclick={() => (isModalOpen = true)}
@@ -41,7 +41,7 @@
       </button>
     </div>
   {:else}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
       {#each $quickListsStore as list (list.id)}
         <QuickListCard {list} />
       {/each}

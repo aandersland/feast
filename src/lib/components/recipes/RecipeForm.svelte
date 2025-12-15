@@ -134,19 +134,19 @@
               bind:value={ing.quantity}
               min="0"
               step="0.25"
-              class="w-20 px-3 py-2 border border-gray-300 rounded-lg"
+              class="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="Qty"
             />
             <input
               type="text"
               bind:value={ing.unit}
-              class="w-24 px-3 py-2 border border-gray-300 rounded-lg"
+              class="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="Unit"
             />
             <input
               type="text"
               bind:value={ing.name}
-              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="Ingredient name"
             />
             <button
@@ -180,7 +180,7 @@
             <input
               type="text"
               bind:value={instructions[i]}
-              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="Step description"
             />
             <button

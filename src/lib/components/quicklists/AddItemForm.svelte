@@ -54,23 +54,23 @@
         bind:value={quantity}
         min="1"
         placeholder="Qty"
-        class="w-16 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        class="w-16 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
       />
       <input
         type="text"
         bind:value={unit}
         placeholder="unit"
-        class="w-20 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        class="w-20 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
       />
       <input
         type="text"
         bind:value={name}
         placeholder="Item name"
-        class="flex-1 min-w-[140px] px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        class="flex-1 min-w-[140px] px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
       />
       <select
         bind:value={category}
-        class="px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        class="px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
       >
         {#each categories as cat}
           <option value={cat}>{cat}</option>
@@ -81,13 +81,13 @@
       <button
         type="button"
         onclick={() => (isExpanded = false)}
-        class="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
+        class="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
       >
         Cancel
       </button>
       <button
         type="submit"
-        class="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+        class="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
       >
         Add Item
       </button>
@@ -97,7 +97,7 @@
   <button
     type="button"
     onclick={() => (isExpanded = true)}
-    class="w-full py-2 text-sm text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
+    class="w-full py-2 text-sm text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg border border-dashed border-gray-300 transition-colors"
   >
     + Add item
   </button>

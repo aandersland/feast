@@ -138,7 +138,7 @@
     <button
       type="button"
       onclick={onEdit}
-      class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+      class="flex-1 px-4 py-2 border border-emerald-600 text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors"
     >
       Edit
     </button>

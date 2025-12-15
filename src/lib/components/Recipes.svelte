@@ -119,16 +119,16 @@
   });
 
   // Grid columns based on panel state
-  let gridCols = $derived(isPanelOpen ? "grid-cols-2" : "grid-cols-3");
+  let gridCols = $derived(isPanelOpen ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4");
 </script>
 
 <div class="flex h-full">
   <!-- Recipe List -->
   <div class="flex-1 overflow-auto p-6 {isPanelOpen ? 'border-r border-gray-200' : ''}">
-    <div class="max-w-6xl mx-auto">
+    <div class="max-w-[1800px] 3xl:max-w-[2400px] mx-auto px-2 sm:px-4 2xl:px-6">
       <!-- Header -->
       <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">Recipes</h1>
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Recipes</h1>
         <div class="flex gap-2">
           <button
             type="button"
@@ -173,7 +173,7 @@
         {#each [...groupedRecipes.entries()] as [group, recipes]}
           <div class="mb-8">
             <h2 class="text-lg font-semibold text-gray-700 mb-4 capitalize">{group}</h2>
-            <div class="grid {gridCols} gap-6">
+            <div class="grid {gridCols} gap-4 sm:gap-6">
               {#each recipes as recipe}
                 <RecipeCard
                   {recipe}
@@ -186,7 +186,7 @@
         {/each}
       {:else}
         <!-- Default Grid View -->
-        <div class="grid {gridCols} gap-6">
+        <div class="grid {gridCols} gap-4 sm:gap-6">
           {#each filteredRecipes as recipe}
             <RecipeCard
               {recipe}

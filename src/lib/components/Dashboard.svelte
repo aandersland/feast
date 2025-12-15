@@ -4,15 +4,15 @@
   import RecentRecipes from "./dashboard/RecentRecipes.svelte";
 </script>
 
-<div class="space-y-6 max-w-6xl mx-auto">
+<div class="space-y-6 max-w-[1800px] 3xl:max-w-[2400px] mx-auto px-2 sm:px-4 2xl:px-6">
   <QuickStats />
   <WeeklyCalendar />
 
-  <div class="grid grid-cols-2 gap-6">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
     <RecentRecipes />
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-      <h2 class="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h2>
+      <h2 class="text-lg sm:text-xl font-semibold text-gray-800 mb-4">Quick Actions</h2>
       <div class="space-y-2">
         <button
           type="button"

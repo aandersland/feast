@@ -57,23 +57,23 @@
       type="number"
       bind:value={editQuantity}
       min="1"
-      class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500"
+      class="w-16 px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
     />
     <input
       type="text"
       bind:value={editUnit}
       placeholder="unit"
-      class="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500"
+      class="w-20 px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
     />
     <input
       type="text"
       bind:value={editName}
       placeholder="name"
-      class="flex-1 min-w-[120px] px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500"
+      class="flex-1 min-w-[120px] px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
     />
     <select
       bind:value={editCategory}
-      class="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500"
+      class="px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
     >
       {#each categories as cat}
         <option value={cat}>{cat}</option>
@@ -83,14 +83,14 @@
       <button
         type="button"
         onclick={saveEdit}
-        class="px-2 py-1 text-sm bg-emerald-600 text-white rounded hover:bg-emerald-700"
+        class="px-2 py-1 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
       >
         Save
       </button>
       <button
         type="button"
         onclick={cancelEdit}
-        class="px-2 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+        class="px-2 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
       >
         Cancel
       </button>
@@ -107,7 +107,7 @@
       <button
         type="button"
         onclick={startEdit}
-        class="p-1 text-gray-400 hover:text-emerald-600 rounded"
+        class="p-1 text-gray-400 hover:text-emerald-600 rounded transition-colors"
         aria-label="Edit item"
       >
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -117,7 +117,7 @@
       <button
         type="button"
         onclick={onRemove}
-        class="p-1 text-gray-400 hover:text-red-600 rounded"
+        class="p-1 text-gray-400 hover:text-red-600 rounded transition-colors"
         aria-label="Remove item"
       >
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -1,6 +1,6 @@
 ---
 date: 2025-12-15
-status: draft
+status: planned
 target_command: create_plan
 ---
 

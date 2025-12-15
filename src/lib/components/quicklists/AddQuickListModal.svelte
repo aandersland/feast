@@ -41,13 +41,13 @@
         <button
           type="button"
           onclick={onClose}
-          class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+          class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
         >
           Cancel
         </button>
         <button
           type="submit"
-          class="px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+          class="px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
         >
           Create List
         </button>

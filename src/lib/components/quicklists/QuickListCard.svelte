@@ -52,7 +52,7 @@
           bind:value={editedName}
           onblur={saveName}
           onkeydown={handleNameKeydown}
-          class="flex-1 px-2 py-1 text-sm font-semibold border border-emerald-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          class="flex-1 px-2 py-1 text-sm font-semibold border border-emerald-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
           autofocus
         />
       {:else}
@@ -70,7 +70,7 @@
       <button
         type="button"
         onclick={deleteList}
-        class="p-1 text-gray-400 hover:text-red-600 rounded"
+        class="p-1 text-gray-400 hover:text-red-600 rounded transition-colors"
         aria-label="Delete list"
       >
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -80,7 +80,7 @@
       <button
         type="button"
         onclick={toggleExpand}
-        class="p-1 text-gray-400 hover:text-gray-600 rounded"
+        class="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
         aria-label={isExpanded ? "Collapse" : "Expand"}
       >
         <svg

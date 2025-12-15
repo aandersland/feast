@@ -11,11 +11,11 @@
 
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
   <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-    <h2 class="text-lg font-semibold text-gray-800">Recent Recipes</h2>
+    <h2 class="text-lg sm:text-xl font-semibold text-gray-800">Recent Recipes</h2>
     <button
       type="button"
       onclick={() => activeTab.set("recipes")}
-      class="text-sm text-emerald-600 hover:text-emerald-700"
+      class="text-sm text-emerald-600 hover:text-emerald-700 transition-colors"
     >
       View all
     </button>

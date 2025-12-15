@@ -19,8 +19,7 @@
   }
 </script>
 
-<div class="max-w-xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-  <h2 class="text-xl font-bold text-gray-800 mb-2">Import Recipe from URL</h2>
+<div>
   <p class="text-gray-500 mb-6">
     Paste a link to a recipe from any website. We'll extract the ingredients, instructions, and more.
   </p>

@@ -72,7 +72,7 @@
             <button
               type="button"
               onclick={() => handleSelect(option)}
-              class="w-full text-left px-3 py-2 hover:bg-emerald-50 capitalize"
+              class="w-full text-left px-3 py-2 hover:bg-emerald-50 capitalize transition-colors"
             >
               {option}
             </button>
