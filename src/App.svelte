@@ -1,38 +1,31 @@
 <script lang="ts">
-  import Greeting from "$lib/components/Greeting.svelte";
-  import { greet } from "$lib/tauri";
+  import TabNavigation from "$lib/components/TabNavigation.svelte";
+  import { activeTab } from "$lib/stores";
 
-  let name = $state("");
-  let greeting = $state("");
-
-  async function handleGreet() {
-    greeting = await greet(name);
-  }
+  // Placeholder components - will be replaced in later phases
+  import Dashboard from "$lib/components/Dashboard.svelte";
+  import Recipes from "$lib/components/Recipes.svelte";
+  import MealPlan from "$lib/components/MealPlan.svelte";
+  import QuickListsManager from "$lib/components/QuickListsManager.svelte";
 </script>
 
-<div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8">
-  <h1 class="text-3xl font-bold text-blue-600 mb-8">feast</h1>
-
-  <div class="bg-white rounded-lg shadow-md p-6 w-full max-w-md">
-    <Greeting />
-
-    <div class="mt-6 space-y-4">
-      <input
-        type="text"
-        bind:value={name}
-        placeholder="Enter your name"
-        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-      <button
-        type="button"
-        onclick={handleGreet}
-        class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors"
-      >
-        Greet
-      </button>
-      {#if greeting}
-        <p class="text-center text-gray-700 mt-4">{greeting}</p>
-      {/if}
+<div class="min-h-screen bg-gray-50 flex flex-col">
+  <header class="bg-white shadow-sm sticky top-0 z-40">
+    <div class="px-6 py-4">
+      <h1 class="text-2xl font-bold text-emerald-600">feast</h1>
     </div>
-  </div>
+    <TabNavigation />
+  </header>
+
+  <main class="flex-1 p-6">
+    {#if $activeTab === "dashboard"}
+      <Dashboard />
+    {:else if $activeTab === "recipes"}
+      <Recipes />
+    {:else if $activeTab === "mealplan"}
+      <MealPlan />
+    {:else if $activeTab === "quicklists"}
+      <QuickListsManager />
+    {/if}
+  </main>
 </div>
