@@ -5,8 +5,18 @@
 pub mod commands;
 pub mod db;
 pub mod error;
+pub mod utils;
 
-use commands::{create_item, delete_item, get_items, greet};
+use commands::{
+    add_quick_list_item, add_quick_list_to_shopping, add_shopping_item, create_ingredient,
+    create_item, create_manual_item, create_meal_plan, create_quick_list, create_recipe,
+    create_shopping_list, delete_item, delete_manual_item, delete_meal_plan, delete_quick_list,
+    delete_recipe, delete_shopping_list, get_aggregated_shopping_list, get_ingredients, get_items,
+    get_manual_items, get_meal_plans, get_or_create_ingredient, get_quick_lists, get_recipe,
+    get_recipes, get_shopping_lists, greet, move_shopping_item, remove_quick_list_item,
+    restore_shopping_item, soft_delete_shopping_item, update_manual_item, update_meal_plan,
+    update_quick_list, update_quick_list_item, update_recipe, update_shopping_item,
+};
 use tauri::Manager;
 
 /// Run the Tauri application
@@ -41,6 +51,45 @@ pub fn run() {
             get_items,
             create_item,
             delete_item,
+            // Recipe commands
+            get_recipes,
+            get_recipe,
+            create_recipe,
+            update_recipe,
+            delete_recipe,
+            // Ingredient commands
+            get_ingredients,
+            create_ingredient,
+            get_or_create_ingredient,
+            // Meal plan commands
+            get_meal_plans,
+            create_meal_plan,
+            update_meal_plan,
+            delete_meal_plan,
+            // Shopping list commands
+            get_shopping_lists,
+            create_shopping_list,
+            delete_shopping_list,
+            add_shopping_item,
+            update_shopping_item,
+            soft_delete_shopping_item,
+            restore_shopping_item,
+            move_shopping_item,
+            get_aggregated_shopping_list,
+            // Quick list commands
+            get_quick_lists,
+            create_quick_list,
+            update_quick_list,
+            delete_quick_list,
+            add_quick_list_item,
+            update_quick_list_item,
+            remove_quick_list_item,
+            add_quick_list_to_shopping,
+            // Manual item commands
+            get_manual_items,
+            create_manual_item,
+            update_manual_item,
+            delete_manual_item,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -52,6 +52,45 @@ pub fn get_db_pool() -> &'static SqlitePool {
         .expect("Database not initialized. Call init_db first.")
 }
 
+/// Initialize a test database
+/// Uses a temporary file-based database that persists for the test run
+/// Note: This uses the global DB_POOL, so tests using this share the same database
+#[cfg(test)]
+pub async fn init_db_for_test() {
+    use tokio::sync::OnceCell;
+
+    static TEST_INIT: OnceCell<()> = OnceCell::const_new();
+
+    TEST_INIT
+        .get_or_init(|| async {
+            // Create a temporary database file for testing
+            // Using a fixed name means all tests share the same database
+            let temp_dir = std::env::temp_dir();
+            let db_path = temp_dir.join("feast_test.db");
+
+            // Remove existing test database to start fresh
+            let _ = std::fs::remove_file(&db_path);
+
+            let options = SqliteConnectOptions::new()
+                .filename(&db_path)
+                .create_if_missing(true);
+
+            let pool = SqlitePoolOptions::new()
+                .max_connections(5)
+                .connect_with(options)
+                .await
+                .expect("Failed to create test database");
+
+            run_migrations(&pool)
+                .await
+                .expect("Failed to run migrations for test");
+
+            // Ignore error if already set (race condition between tests)
+            let _ = DB_POOL.set(pool);
+        })
+        .await;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
