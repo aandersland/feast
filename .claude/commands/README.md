@@ -10,7 +10,9 @@ Commands are invoked directly: `/command_name [args]`
 
 | Command | Purpose | When to Use |
 |---------|---------|-------------|
-| `/create_prompt` | Elicit and structure feature specs | Unclear requirements, need scoping |
+| `/create_roadmap` | Decompose feature into chunks | Large features, need strategic breakdown |
+| `/create_prompt_v2` | Create chunk spec from roadmap | After roadmap exists, per-chunk prompts |
+| `/create_prompt` | Elicit and structure feature specs | Standalone features, unclear requirements |
 | `/create_plan` | Create implementation plans | Starting features, complex changes |
 | `/implement_plan` | Execute approved plans | After plan is reviewed and approved |
 | `/research_codebase` | Deep codebase investigation | Understanding unfamiliar areas |
@@ -20,6 +22,52 @@ Commands are invoked directly: `/command_name [args]`
 ---
 
 ## Command Details
+
+### `/create_roadmap`
+
+Decompose a feature into implementable chunks with strategic decisions upfront.
+
+```bash
+# Direct invocation (will guide you through questions)
+/create_roadmap
+```
+
+**Output**: Roadmap file in `ai_docs/roadmaps/YYYY-MM-DD-feature-name.md`
+
+**Use when**:
+- Feature is large enough to need multiple implementation chunks
+- Want to make strategic decisions (testing, constraints) once upfront
+- Need to understand dependencies between pieces
+
+**Produces**:
+- Vision, background, affected areas
+- Testing strategy for the whole feature
+- 2-6 chunks with purpose, dependencies, and key considerations
+- Checklist of `/create_prompt_v2` commands for each chunk
+
+---
+
+### `/create_prompt_v2`
+
+Create a chunk-level spec from an existing roadmap with minimal elicitation.
+
+```bash
+# With roadmap path and chunk number
+/create_prompt_v2 ai_docs/roadmaps/2024-12-16-user-auth.md 1
+```
+
+**Output**: Prompt file in `ai_docs/prompts/YYYY-MM-DD-NN-chunk-name.md`
+
+**Behavior**:
+- Inherits context from roadmap (vision, constraints, testing strategy)
+- Only asks about edge cases, ambiguities, and scope boundaries
+- Skips elicitation if roadmap is detailed enough
+
+**Use when**:
+- Roadmap already exists for the feature
+- Creating prompts for each chunk in sequence
+
+---
 
 ### `/create_prompt`
 
@@ -181,6 +229,30 @@ Agents are task specialists used internally by commands. You typically don't inv
 3. Continue as above...
 ```
 
+### Large Feature (Roadmap-Driven)
+
+```
+1. /create_roadmap
+   → Strategic decomposition, produces roadmap with N chunks
+
+2. /create_prompt_v2 ai_docs/roadmaps/2025-01-15-feature.md 1
+   → Creates chunk 1 prompt (light elicitation)
+
+3. /create_prompt_v2 ai_docs/roadmaps/2025-01-15-feature.md 2
+   → Creates chunk 2 prompt...
+   → Repeat for all chunks
+
+4. Review prompt files in ai_docs/prompts/
+
+5. /create_plan ai_docs/prompts/2025-01-15-01-chunk-one.md
+   → Plans first chunk
+
+6. /implement_plan ai_docs/plans/2025-01-15-chunk-one.md
+   → Implements, test, commit
+
+7. Continue with next chunk...
+```
+
 ---
 
 ## File Locations
@@ -189,6 +261,7 @@ Agents are task specialists used internally by commands. You typically don't inv
 |------|----------|--------|
 | Commands | `.claude/commands/` | `command-name.md` |
 | Agents | `.claude/agents/` | `agent-name.md` |
+| Roadmaps | `ai_docs/roadmaps/` | `YYYY-MM-DD-feature-name.md` |
+| Prompts | `ai_docs/prompts/` | `YYYY-MM-DD-NN-chunk-name.md` |
 | Plans | `ai_docs/plans/` | `YYYY-MM-DD-description.md` |
 | Research | `ai_docs/research/` | `YYYY-MM-DD-topic.md` |
-| Prompts | `ai_docs/prompts/` | `YYYY-MM-DD-description.md` |
