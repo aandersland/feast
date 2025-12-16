@@ -1,9 +1,14 @@
 <script lang="ts">
-  import { quickListsStore } from "$lib/stores";
+  import { onMount } from "svelte";
+  import { quickListsStore, quickListsLoading } from "$lib/stores";
   import QuickListCard from "./quicklists/QuickListCard.svelte";
   import AddQuickListModal from "./quicklists/AddQuickListModal.svelte";
 
   let isModalOpen = $state(false);
+
+  onMount(() => {
+    quickListsStore.load();
+  });
 
   function handleAddList(name: string) {
     quickListsStore.addList(name);
@@ -25,7 +30,11 @@
     </button>
   </div>
 
-  {#if $quickListsStore.length === 0}
+  {#if $quickListsLoading}
+    <div class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+    </div>
+  {:else if $quickListsStore.length === 0}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />

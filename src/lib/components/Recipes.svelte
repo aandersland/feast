@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { recipeStore, groupRecipes, getRecipeProtein, getRecipeStarch } from "$lib/stores";
+  import { onMount } from "svelte";
+  import { recipeStore, recipesLoading, groupRecipes, getRecipeProtein, getRecipeStarch } from "$lib/stores";
   import type { Recipe, RecipeViewMode } from "$lib/types";
   import RecipeCard from "./recipes/RecipeCard.svelte";
   import RecipeForm from "./recipes/RecipeForm.svelte";
@@ -7,6 +8,7 @@
   import IngredientFilters from "./recipes/IngredientFilters.svelte";
   import RecipeViewToggle from "./recipes/RecipeViewToggle.svelte";
   import Modal from "./shared/Modal.svelte";
+  import ConfirmDialog from "./shared/ConfirmDialog.svelte";
   import RecipeDetailPanel from "./recipes/RecipeDetailPanel.svelte";
 
   type ModalView = "none" | "create" | "import" | "edit";
@@ -23,6 +25,20 @@
   let searchQuery = $state("");
   let ingredientFilters = $state<[string, string, string]>(["", "", ""]);
   let viewMode = $state<RecipeViewMode>("default");
+
+  // Delete confirmation state
+  let deleteTarget: { id: string; name: string } | null = $state(null);
+
+  onMount(() => {
+    recipeStore.load();
+  });
+
+  async function handleDelete() {
+    if (deleteTarget) {
+      await recipeStore.remove(deleteTarget.id);
+      deleteTarget = null;
+    }
+  }
 
   // Filtering logic
   let filteredRecipes = $derived.by(() => {
@@ -81,23 +97,22 @@
     modalView = "edit";
   }
 
-  function handleSaveRecipe(data: Omit<Recipe, "id" | "createdAt">) {
-    if (editingRecipe) {
-      recipeStore.update(editingRecipe.id, data);
-      // Update selected if editing current
-      if (selectedRecipe?.id === editingRecipe.id) {
-        selectedRecipe = { ...editingRecipe, ...data };
+  async function handleSaveRecipe(data: Omit<Recipe, "id" | "createdAt">) {
+    try {
+      if (editingRecipe) {
+        const updated = await recipeStore.update(editingRecipe.id, data);
+        // Update selected if editing current
+        if (selectedRecipe?.id === editingRecipe.id && updated) {
+          selectedRecipe = updated;
+        }
+      } else {
+        await recipeStore.add(data);
       }
-    } else {
-      const newRecipe: Recipe = {
-        ...data,
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString().split("T")[0],
-      };
-      recipeStore.add(newRecipe);
+      modalView = "none";
+      editingRecipe = null;
+    } catch {
+      // Error already handled by store with toast
     }
-    modalView = "none";
-    editingRecipe = null;
   }
 
   function handleImport(url: string) {
@@ -168,7 +183,16 @@
       </div>
 
       <!-- Recipe Grid -->
-      {#if groupedRecipes}
+      {#if $recipesLoading}
+        <div class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+          <span class="ml-3 text-gray-600">Loading recipes...</span>
+        </div>
+      {:else if $recipeStore.length === 0}
+        <div class="text-center py-12">
+          <p class="text-gray-500">No recipes yet. Add your first recipe to get started!</p>
+        </div>
+      {:else if groupedRecipes}
         <!-- Grouped View -->
         {#each [...groupedRecipes.entries()] as [group, recipes]}
           <div class="mb-8">
@@ -197,7 +221,7 @@
         </div>
       {/if}
 
-      {#if filteredRecipes.length === 0}
+      {#if !$recipesLoading && $recipeStore.length > 0 && filteredRecipes.length === 0}
         <div class="text-center py-12 text-gray-500">
           No recipes found. Try adjusting your filters or add a new recipe!
         </div>
@@ -239,3 +263,13 @@
     <ImportRecipe onImport={handleImport} onCancel={closeModal} />
   {/snippet}
 </Modal>
+
+<ConfirmDialog
+  open={deleteTarget !== null}
+  title="Delete Recipe"
+  message={`Are you sure you want to delete "${deleteTarget?.name}"? This cannot be undone.`}
+  confirmLabel="Delete"
+  destructive={true}
+  onConfirm={handleDelete}
+  onCancel={() => (deleteTarget = null)}
+/>

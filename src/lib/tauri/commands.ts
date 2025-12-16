@@ -97,7 +97,15 @@ export async function getOrCreateIngredient(
 }
 
 // Meal plan types and commands
-import type { MealPlan } from "$lib/types";
+// Backend returns flat rows (one row per meal), frontend groups by date
+export interface MealPlanRow {
+  id: string;
+  date: string;
+  mealType: string;
+  recipeId: string;
+  servings: number;
+  createdAt: string;
+}
 
 export interface MealPlanInput {
   date: string;
@@ -106,16 +114,16 @@ export interface MealPlanInput {
   servings: number;
 }
 
-export async function getMealPlans(startDate: string, endDate: string): Promise<MealPlan[]> {
-  return invoke<MealPlan[]>("get_meal_plans", { startDate, endDate });
+export async function getMealPlans(startDate: string, endDate: string): Promise<MealPlanRow[]> {
+  return invoke<MealPlanRow[]>("get_meal_plans", { startDate, endDate });
 }
 
-export async function createMealPlan(input: MealPlanInput): Promise<MealPlan> {
-  return invoke<MealPlan>("create_meal_plan", { input });
+export async function createMealPlan(input: MealPlanInput): Promise<MealPlanRow> {
+  return invoke<MealPlanRow>("create_meal_plan", { input });
 }
 
-export async function updateMealPlan(id: string, servings: number): Promise<MealPlan> {
-  return invoke<MealPlan>("update_meal_plan", { id, servings });
+export async function updateMealPlan(id: string, servings: number): Promise<MealPlanRow> {
+  return invoke<MealPlanRow>("update_meal_plan", { id, servings });
 }
 
 export async function deleteMealPlan(id: string): Promise<void> {

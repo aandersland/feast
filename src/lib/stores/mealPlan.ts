@@ -1,88 +1,130 @@
 import { writable, derived } from "svelte/store";
 import type { MealPlan, PlannedMeal, MealType } from "$lib/types";
+import {
+  getMealPlans as getMealPlansCmd,
+  createMealPlan as createMealPlanCmd,
+  updateMealPlan as updateMealPlanCmd,
+  deleteMealPlan as deleteMealPlanCmd,
+  type MealPlanRow,
+} from "$lib/tauri/commands";
+import { toastStore } from "./toast";
 
-// Generate current week's dates
-function getCurrentWeekDates(): string[] {
-  const today = new Date();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - today.getDay() + 1);
+// Loading and error state
+export const mealPlansLoading = writable(false);
+export const mealPlansError = writable<string | null>(null);
 
-  return Array.from({ length: 7 }, (_, i) => {
-    const date = new Date(monday);
-    date.setDate(monday.getDate() + i);
-    return date.toISOString().split("T")[0];
-  });
+const { subscribe, set, update } = writable<MealPlan[]>([]);
+
+// Transform flat backend rows to nested frontend structure
+function groupMealsByDate(flatMeals: MealPlanRow[]): MealPlan[] {
+  const byDate = new Map<string, MealPlan>();
+
+  for (const meal of flatMeals) {
+    if (!byDate.has(meal.date)) {
+      byDate.set(meal.date, {
+        id: meal.date, // Use date as MealPlan ID
+        date: meal.date,
+        meals: [],
+      });
+    }
+    byDate.get(meal.date)!.meals.push({
+      id: meal.id,
+      recipeId: meal.recipeId,
+      mealType: meal.mealType as MealType,
+      servings: meal.servings,
+    });
+  }
+
+  return Array.from(byDate.values());
 }
 
-const weekDates = getCurrentWeekDates();
+async function loadMealPlans(startDate: string, endDate: string) {
+  mealPlansLoading.set(true);
+  mealPlansError.set(null);
+  try {
+    const flatMeals = await getMealPlansCmd(startDate, endDate);
+    const grouped = groupMealsByDate(flatMeals);
+    set(grouped);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Failed to load meal plans";
+    mealPlansError.set(message);
+    toastStore.error(message);
+  } finally {
+    mealPlansLoading.set(false);
+  }
+}
 
-const mockMealPlans: MealPlan[] = [
-  {
-    id: "1",
-    date: weekDates[0],
-    meals: [
-      { id: "m1", recipeId: "1", mealType: "dinner", servings: 4 },
-    ],
-  },
-  {
-    id: "2",
-    date: weekDates[2],
-    meals: [
-      { id: "m2", recipeId: "2", mealType: "lunch", servings: 2 },
-      { id: "m3", recipeId: "3", mealType: "dinner", servings: 4 },
-    ],
-  },
-];
+export const mealPlanStore = {
+  subscribe,
+  load: loadMealPlans,
 
-function createMealPlanStore() {
-  const { subscribe, set, update } = writable<MealPlan[]>(mockMealPlans);
+  addMeal: async (date: string, recipeId: string, mealType: MealType, servings: number) => {
+    try {
+      const created = await createMealPlanCmd({ date, mealType, recipeId, servings });
 
-  return {
-    subscribe,
-    addMeal: (date: string, recipeId: string, mealType: MealType, servings: number) =>
       update((plans) => {
         const existing = plans.find((p) => p.date === date);
-        const newMeal: PlannedMeal = {
-          id: crypto.randomUUID(),
-          recipeId,
-          mealType,
-          servings,
-        };
-
         if (existing) {
           return plans.map((p) =>
-            p.date === date ? { ...p, meals: [...p.meals, newMeal] } : p
+            p.date === date
+              ? { ...p, meals: [...p.meals, { id: created.id, recipeId, mealType, servings }] }
+              : p
           );
+        } else {
+          return [...plans, {
+            id: date,
+            date,
+            meals: [{ id: created.id, recipeId, mealType, servings }],
+          }];
         }
+      });
+      toastStore.success("Meal added to plan");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Failed to add meal";
+      toastStore.error(message);
+      throw e;
+    }
+  },
 
-        return [...plans, { id: crypto.randomUUID(), date, meals: [newMeal] }];
-      }),
-    removeMeal: (date: string, mealId: string) =>
+  removeMeal: async (date: string, mealId: string) => {
+    try {
+      await deleteMealPlanCmd(mealId);
+
+      update((plans) =>
+        plans
+          .map((p) =>
+            p.date === date ? { ...p, meals: p.meals.filter((m) => m.id !== mealId) } : p
+          )
+          .filter((p) => p.meals.length > 0)
+      );
+      toastStore.success("Meal removed from plan");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Failed to remove meal";
+      toastStore.error(message);
+      throw e;
+    }
+  },
+
+  updateServings: async (date: string, mealId: string, servings: number) => {
+    try {
+      await updateMealPlanCmd(mealId, servings);
+
       update((plans) =>
         plans.map((p) =>
           p.date === date
-            ? { ...p, meals: p.meals.filter((m) => m.id !== mealId) }
-            : p
-        ).filter((p) => p.meals.length > 0)
-      ),
-    updateServings: (date: string, mealId: string, servings: number) =>
-      update((plans) =>
-        plans.map((p) =>
-          p.date === date
-            ? {
-                ...p,
-                meals: p.meals.map((m) =>
-                  m.id === mealId ? { ...m, servings } : m
-                ),
-              }
+            ? { ...p, meals: p.meals.map((m) => (m.id === mealId ? { ...m, servings } : m)) }
             : p
         )
-      ),
-  };
-}
+      );
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Failed to update servings";
+      toastStore.error(message);
+      throw e;
+    }
+  },
+};
 
-export const mealPlanStore = createMealPlanStore();
-
+// Derived store for quick lookup by date
 export const mealPlanByDate = derived(mealPlanStore, ($plans) => {
   const map = new Map<string, MealPlan>();
   $plans.forEach((p) => map.set(p.date, p));

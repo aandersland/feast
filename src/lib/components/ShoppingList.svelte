@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { aggregatedShoppingList, manualItemsStore } from "$lib/stores";
+  import { onMount } from "svelte";
+  import { aggregatedShoppingList, manualItemsStore, getWeekStart } from "$lib/stores";
   import type { QuickListItem } from "$lib/types";
   import ShoppingItem from "./shopping/ShoppingItem.svelte";
   import AddItemForm from "./shopping/AddItemForm.svelte";
@@ -7,6 +8,14 @@
 
   // Track on-hand state for aggregated items (not in store)
   let onHandIds = $state(new Set<string>());
+
+  // Get current week start for manual items
+  const weekStart = getWeekStart(0);
+
+  // Load manual items on mount
+  onMount(() => {
+    manualItemsStore.load(weekStart);
+  });
 
   function toggleOnHand(itemId: string, isManual: boolean) {
     if (isManual) {
@@ -21,24 +30,24 @@
     }
   }
 
-  function handleAddItem(name: string, quantity: number, unit: string, category: string) {
-    manualItemsStore.add({ name, quantity, unit, category, isOnHand: false });
+  async function handleAddItem(name: string, quantity: number, unit: string, category: string) {
+    await manualItemsStore.add(weekStart, { name, quantity, unit, category, isOnHand: false });
   }
 
-  function handleRemoveItem(id: string) {
-    manualItemsStore.remove(id);
+  async function handleRemoveItem(id: string) {
+    await manualItemsStore.remove(id);
   }
 
-  function handleAddFromQuickList(items: QuickListItem[]) {
-    items.forEach((item) => {
-      manualItemsStore.add({
+  async function handleAddFromQuickList(items: QuickListItem[]) {
+    for (const item of items) {
+      await manualItemsStore.add(weekStart, {
         name: item.name,
         quantity: item.quantity,
         unit: item.unit,
         category: item.category,
         isOnHand: false,
       });
-    });
+    }
   }
 
   // Merge on-hand state with aggregated list
