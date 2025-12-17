@@ -44,7 +44,7 @@ function toRecipeInput(recipe: Omit<Recipe, "id" | "createdAt" | "updatedAt">): 
     prepTime: recipe.prepTime ?? 0,
     cookTime: recipe.cookTime ?? 0,
     servings: recipe.servings ?? 1,
-    imagePath: recipe.imageUrl,
+    imageUrl: recipe.imageUrl,
     sourceUrl: recipe.sourceUrl,
     notes: recipe.notes,
     tags: recipe.tags ?? [],

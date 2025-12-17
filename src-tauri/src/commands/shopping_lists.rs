@@ -57,7 +57,10 @@ pub async fn restore_shopping_item(id: String) -> Result<ShoppingListItem, Strin
 }
 
 #[command]
-pub async fn move_shopping_item(id: String, to_list_id: String) -> Result<ShoppingListItem, String> {
+pub async fn move_shopping_item(
+    id: String,
+    to_list_id: String,
+) -> Result<ShoppingListItem, String> {
     shopping_lists::move_shopping_item(&id, &to_list_id)
         .await
         .map_err(|e| e.to_string())

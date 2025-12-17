@@ -40,7 +40,7 @@ pub async fn get_meal_plans(start_date: &str, end_date: &str) -> Result<Vec<Meal
              WHEN 'lunch' THEN 2
              WHEN 'dinner' THEN 3
              WHEN 'snack' THEN 4
-           END"
+           END",
     )
     .bind(start_date)
     .bind(end_date)
@@ -64,7 +64,7 @@ pub async fn create_meal_plan(input: MealPlanInput) -> Result<MealPlan, AppError
 
     sqlx::query(
         "INSERT INTO meal_plans (id, date, meal_type, recipe_id, servings)
-         VALUES (?, ?, ?, ?, ?)"
+         VALUES (?, ?, ?, ?, ?)",
     )
     .bind(&id)
     .bind(&input.date)
@@ -77,7 +77,7 @@ pub async fn create_meal_plan(input: MealPlanInput) -> Result<MealPlan, AppError
 
     sqlx::query_as::<_, MealPlan>(
         "SELECT id, date, meal_type, recipe_id, servings, created_at
-         FROM meal_plans WHERE id = ?"
+         FROM meal_plans WHERE id = ?",
     )
     .bind(&id)
     .fetch_one(pool)
@@ -97,12 +97,14 @@ pub async fn update_meal_plan(id: &str, servings: i64) -> Result<MealPlan, AppEr
         .map_err(|e| AppError::Database(e.to_string()))?;
 
     if result.rows_affected() == 0 {
-        return Err(AppError::NotFound(format!("Meal plan with id {id} not found")));
+        return Err(AppError::NotFound(format!(
+            "Meal plan with id {id} not found"
+        )));
     }
 
     sqlx::query_as::<_, MealPlan>(
         "SELECT id, date, meal_type, recipe_id, servings, created_at
-         FROM meal_plans WHERE id = ?"
+         FROM meal_plans WHERE id = ?",
     )
     .bind(id)
     .fetch_one(pool)
@@ -121,7 +123,9 @@ pub async fn delete_meal_plan(id: &str) -> Result<(), AppError> {
         .map_err(|e| AppError::Database(e.to_string()))?;
 
     if result.rows_affected() == 0 {
-        return Err(AppError::NotFound(format!("Meal plan with id {id} not found")));
+        return Err(AppError::NotFound(format!(
+            "Meal plan with id {id} not found"
+        )));
     }
 
     Ok(())

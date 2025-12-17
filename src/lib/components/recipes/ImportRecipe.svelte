@@ -1,21 +1,45 @@
 <script lang="ts">
+  import { importRecipeFromUrl } from "$lib/tauri";
+  import { toastStore } from "$lib/stores";
+  import type { Recipe } from "$lib/types";
+
   interface Props {
-    onImport: (url: string) => void;
+    onSuccess: (recipe: Recipe) => void;
     onCancel: () => void;
   }
 
-  let { onImport, onCancel }: Props = $props();
+  let { onSuccess, onCancel }: Props = $props();
   let url = $state("");
   let isLoading = $state(false);
+  let error = $state<string | null>(null);
 
-  function handleSubmit() {
-    if (!url.trim()) return;
+  async function handleSubmit() {
+    const trimmedUrl = url.trim();
+    if (!trimmedUrl) {
+      error = "Please enter a URL";
+      return;
+    }
+
+    error = null;
     isLoading = true;
-    // Simulate import delay (actual parsing will be backend)
-    setTimeout(() => {
-      onImport(url);
+
+    try {
+      const recipe = await importRecipeFromUrl(trimmedUrl);
+      toastStore.success(`Imported "${recipe.name}"`);
+      onSuccess(recipe);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      error = message;
+      // Don't show toast - error is already displayed inline in the modal
+    } finally {
       isLoading = false;
-    }, 1500);
+    }
+  }
+
+  function handleCancel() {
+    if (!isLoading) {
+      onCancel();
+    }
   }
 </script>
 
@@ -30,10 +54,14 @@
       <input
         type="url"
         bind:value={url}
+        disabled={isLoading}
         required
         placeholder="https://www.example.com/recipe/..."
-        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
       />
+      {#if error}
+        <p class="mt-2 text-sm text-red-600">{error}</p>
+      {/if}
     </div>
 
     {#if isLoading}
@@ -46,17 +74,18 @@
     <div class="flex justify-end gap-3 pt-4">
       <button
         type="button"
-        onclick={onCancel}
-        class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+        onclick={handleCancel}
+        disabled={isLoading}
+        class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Cancel
       </button>
       <button
         type="submit"
-        disabled={isLoading}
-        class="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+        disabled={isLoading || !url.trim()}
+        class="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Import Recipe
+        {isLoading ? "Importing..." : "Import Recipe"}
       </button>
     </div>
   </form>

@@ -16,31 +16,19 @@ pub fn get_unit_category(unit: &str) -> UnitCategory {
     let unit_lower = unit.to_lowercase();
     match unit_lower.as_str() {
         // Volume units
-        "cup" | "cups" | "c" |
-        "tablespoon" | "tablespoons" | "tbsp" | "tbs" |
-        "teaspoon" | "teaspoons" | "tsp" |
-        "ml" | "milliliter" | "milliliters" |
-        "l" | "liter" | "liters" |
-        "fl oz" | "fluid ounce" | "fluid ounces" |
-        "pint" | "pints" | "pt" |
-        "quart" | "quarts" | "qt" |
-        "gallon" | "gallons" | "gal" => UnitCategory::Volume,
+        "cup" | "cups" | "c" | "tablespoon" | "tablespoons" | "tbsp" | "tbs" | "teaspoon"
+        | "teaspoons" | "tsp" | "ml" | "milliliter" | "milliliters" | "l" | "liter" | "liters"
+        | "fl oz" | "fluid ounce" | "fluid ounces" | "pint" | "pints" | "pt" | "quart"
+        | "quarts" | "qt" | "gallon" | "gallons" | "gal" => UnitCategory::Volume,
 
         // Weight units
-        "g" | "gram" | "grams" |
-        "kg" | "kilogram" | "kilograms" |
-        "oz" | "ounce" | "ounces" |
-        "lb" | "lbs" | "pound" | "pounds" => UnitCategory::Weight,
+        "g" | "gram" | "grams" | "kg" | "kilogram" | "kilograms" | "oz" | "ounce" | "ounces"
+        | "lb" | "lbs" | "pound" | "pounds" => UnitCategory::Weight,
 
         // Count units
-        "" | "whole" | "piece" | "pieces" |
-        "clove" | "cloves" |
-        "slice" | "slices" |
-        "can" | "cans" |
-        "bunch" | "bunches" |
-        "head" | "heads" |
-        "stalk" | "stalks" |
-        "sprig" | "sprigs" => UnitCategory::Count,
+        "" | "whole" | "piece" | "pieces" | "clove" | "cloves" | "slice" | "slices" | "can"
+        | "cans" | "bunch" | "bunches" | "head" | "heads" | "stalk" | "stalks" | "sprig"
+        | "sprigs" => UnitCategory::Count,
 
         _ => UnitCategory::Other,
     }
@@ -142,7 +130,10 @@ pub fn aggregate_quantities(items: &[(f64, String)]) -> Vec<AggregatedQuantity> 
 
     for (qty, unit) in items {
         let cat = get_unit_category(unit);
-        by_category.entry(cat).or_default().push((*qty, unit.clone()));
+        by_category
+            .entry(cat)
+            .or_default()
+            .push((*qty, unit.clone()));
     }
 
     let mut results = vec![];
@@ -246,10 +237,7 @@ mod tests {
 
     #[test]
     fn test_aggregate_same_unit() {
-        let items = vec![
-            (1.0, "cup".to_string()),
-            (0.5, "cup".to_string()),
-        ];
+        let items = vec![(1.0, "cup".to_string()), (0.5, "cup".to_string())];
         let result = aggregate_quantities(&items);
         assert_eq!(result.len(), 1);
         assert!((result[0].quantity - 1.5).abs() < 0.001);
@@ -258,10 +246,7 @@ mod tests {
 
     #[test]
     fn test_aggregate_different_volume_units() {
-        let items = vec![
-            (1.0, "cup".to_string()),
-            (2.0, "tbsp".to_string()),
-        ];
+        let items = vec![(1.0, "cup".to_string()), (2.0, "tbsp".to_string())];
         let result = aggregate_quantities(&items);
         assert_eq!(result.len(), 1);
         // Result should be in cups (most common), 1 cup + 2 tbsp ≈ 1.125 cups
@@ -270,10 +255,7 @@ mod tests {
 
     #[test]
     fn test_aggregate_incompatible() {
-        let items = vec![
-            (1.0, "cup".to_string()),
-            (2.0, "lb".to_string()),
-        ];
+        let items = vec![(1.0, "cup".to_string()), (2.0, "lb".to_string())];
         let result = aggregate_quantities(&items);
         assert_eq!(result.len(), 2); // Can't combine, separate entries
     }

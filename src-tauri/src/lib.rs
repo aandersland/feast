@@ -5,6 +5,8 @@
 pub mod commands;
 pub mod db;
 pub mod error;
+pub mod http;
+pub mod parser;
 pub mod utils;
 
 use commands::{
@@ -13,9 +15,10 @@ use commands::{
     create_shopping_list, delete_item, delete_manual_item, delete_meal_plan, delete_quick_list,
     delete_recipe, delete_shopping_list, get_aggregated_shopping_list, get_ingredients, get_items,
     get_manual_items, get_meal_plans, get_or_create_ingredient, get_quick_lists, get_recipe,
-    get_recipes, get_shopping_lists, greet, move_shopping_item, remove_quick_list_item,
-    restore_shopping_item, soft_delete_shopping_item, update_manual_item, update_meal_plan,
-    update_quick_list, update_quick_list_item, update_recipe, update_shopping_item,
+    get_recipes, get_shopping_lists, greet, import_recipe_from_url, move_shopping_item,
+    remove_quick_list_item, restore_shopping_item, soft_delete_shopping_item, update_manual_item,
+    update_meal_plan, update_quick_list, update_quick_list_item, update_recipe,
+    update_shopping_item,
 };
 use tauri::Manager;
 
@@ -57,6 +60,7 @@ pub fn run() {
             create_recipe,
             update_recipe,
             delete_recipe,
+            import_recipe_from_url,
             // Ingredient commands
             get_ingredients,
             create_ingredient,

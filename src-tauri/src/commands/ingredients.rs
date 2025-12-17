@@ -6,7 +6,9 @@ use tauri::command;
 /// Get all ingredients
 #[command]
 pub async fn get_ingredients() -> Result<Vec<Ingredient>, String> {
-    ingredients::get_all_ingredients().await.map_err(|e| e.into())
+    ingredients::get_all_ingredients()
+        .await
+        .map_err(|e| e.into())
 }
 
 /// Create a new ingredient

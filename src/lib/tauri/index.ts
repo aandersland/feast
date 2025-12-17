@@ -9,6 +9,7 @@ export {
   createRecipe,
   updateRecipe,
   deleteRecipe,
+  importRecipeFromUrl,
   // Ingredient exports
   getIngredients,
   createIngredient,

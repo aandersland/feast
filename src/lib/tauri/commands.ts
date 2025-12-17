@@ -24,7 +24,7 @@ export interface RecipeInput {
   prepTime: number;
   cookTime: number;
   servings: number;
-  imagePath?: string;
+  imageUrl?: string;
   sourceUrl?: string;
   notes?: string;
   tags: string[];
@@ -47,7 +47,7 @@ export interface RecipeRow {
   prepTime: number;
   cookTime: number;
   servings: number;
-  imagePath?: string;
+  imageUrl?: string;
   sourceUrl?: string;
   notes?: string;
   createdAt: string;
@@ -73,6 +73,10 @@ export async function updateRecipe(id: string, input: RecipeInput): Promise<Reci
 
 export async function deleteRecipe(id: string): Promise<void> {
   return invoke<void>("delete_recipe", { id });
+}
+
+export async function importRecipeFromUrl(url: string): Promise<Recipe> {
+  return invoke<Recipe>("import_recipe_from_url", { url });
 }
 
 // Ingredient commands

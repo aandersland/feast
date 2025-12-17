@@ -14,7 +14,9 @@ pub async fn get_meal_plans(start_date: String, end_date: String) -> Result<Vec<
 /// Create a meal plan entry
 #[command]
 pub async fn create_meal_plan(input: MealPlanInput) -> Result<MealPlan, String> {
-    meal_plans::create_meal_plan(input).await.map_err(|e| e.into())
+    meal_plans::create_meal_plan(input)
+        .await
+        .map_err(|e| e.into())
 }
 
 /// Update meal plan servings
@@ -28,5 +30,7 @@ pub async fn update_meal_plan(id: String, servings: i64) -> Result<MealPlan, Str
 /// Delete a meal plan entry
 #[command]
 pub async fn delete_meal_plan(id: String) -> Result<(), String> {
-    meal_plans::delete_meal_plan(&id).await.map_err(|e| e.into())
+    meal_plans::delete_meal_plan(&id)
+        .await
+        .map_err(|e| e.into())
 }

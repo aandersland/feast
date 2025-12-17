@@ -16,9 +16,11 @@ pub struct RecipeRow {
     pub prep_time: i64,
     pub cook_time: i64,
     pub servings: i64,
+    #[serde(rename = "imageUrl")]
     pub image_path: Option<String>,
     pub source_url: Option<String>,
     pub notes: Option<String>,
+    pub instructions: String, // JSON array stored as TEXT
     pub created_at: String,
     pub updated_at: String,
 }
@@ -46,6 +48,7 @@ pub struct Recipe {
     pub prep_time: i64,
     pub cook_time: i64,
     pub servings: i64,
+    #[serde(rename = "imageUrl")]
     pub image_path: Option<String>,
     pub source_url: Option<String>,
     pub notes: Option<String>,
@@ -75,6 +78,7 @@ pub struct RecipeInput {
     pub prep_time: i64,
     pub cook_time: i64,
     pub servings: i64,
+    #[serde(rename = "imageUrl")]
     pub image_path: Option<String>,
     pub source_url: Option<String>,
     pub notes: Option<String>,
@@ -93,13 +97,30 @@ pub struct IngredientInput {
     pub notes: Option<String>,
 }
 
+/// Parse instructions JSON string into Vec<String>
+/// Returns empty vec on parse failure (graceful degradation)
+fn parse_instructions(json_str: &str) -> Vec<String> {
+    if json_str.is_empty() {
+        return vec![];
+    }
+    serde_json::from_str(json_str).unwrap_or_else(|e| {
+        log::warn!("Failed to parse instructions JSON: {}", e);
+        vec![]
+    })
+}
+
+/// Serialize instructions Vec<String> to JSON string
+fn serialize_instructions(instructions: &[String]) -> String {
+    serde_json::to_string(instructions).unwrap_or_else(|_| "[]".to_string())
+}
+
 /// Get all recipes (without ingredients for list view)
 pub async fn get_all_recipes() -> Result<Vec<RecipeRow>, AppError> {
     let pool = get_db_pool();
 
     sqlx::query_as::<_, RecipeRow>(
         "SELECT id, name, description, prep_time, cook_time, servings,
-                image_path, source_url, notes, created_at, updated_at
+                image_path, source_url, notes, instructions, created_at, updated_at
          FROM recipes ORDER BY created_at DESC",
     )
     .fetch_all(pool)
@@ -114,7 +135,7 @@ pub async fn get_recipe_by_id(id: &str) -> Result<Recipe, AppError> {
     // Get recipe row
     let row = sqlx::query_as::<_, RecipeRow>(
         "SELECT id, name, description, prep_time, cook_time, servings,
-                image_path, source_url, notes, created_at, updated_at
+                image_path, source_url, notes, instructions, created_at, updated_at
          FROM recipes WHERE id = ?",
     )
     .bind(id)
@@ -147,10 +168,8 @@ pub async fn get_recipe_by_id(id: &str) -> Result<Recipe, AppError> {
     .await
     .map_err(|e| AppError::Database(e.to_string()))?;
 
-    // Get instructions (stored as JSON in notes for now, or separate table later)
-    // For simplicity, we'll store instructions as newline-separated in a field
-    // TODO: Consider separate instructions table if ordering/editing needed
-    let instructions: Vec<String> = vec![]; // Placeholder - implement based on storage decision
+    // Parse instructions from JSON
+    let instructions = parse_instructions(&row.instructions);
 
     Ok(Recipe {
         id: row.id,
@@ -184,11 +203,14 @@ pub async fn create_recipe(input: RecipeInput) -> Result<Recipe, AppError> {
     let pool = get_db_pool();
     let recipe_id = Uuid::new_v4().to_string();
 
+    // Serialize instructions to JSON
+    let instructions_json = serialize_instructions(&input.instructions);
+
     // Insert recipe
     sqlx::query(
         "INSERT INTO recipes (id, name, description, prep_time, cook_time, servings,
-                              image_path, source_url, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                              image_path, source_url, notes, instructions)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(&recipe_id)
     .bind(&input.name)
@@ -199,6 +221,7 @@ pub async fn create_recipe(input: RecipeInput) -> Result<Recipe, AppError> {
     .bind(&input.image_path)
     .bind(&input.source_url)
     .bind(&input.notes)
+    .bind(&instructions_json)
     .execute(pool)
     .await
     .map_err(|e| AppError::Database(e.to_string()))?;
@@ -254,11 +277,14 @@ pub async fn update_recipe(id: &str, input: RecipeInput) -> Result<Recipe, AppEr
         return Err(AppError::NotFound(format!("Recipe with id {id} not found")));
     }
 
+    // Serialize instructions to JSON
+    let instructions_json = serialize_instructions(&input.instructions);
+
     // Update recipe
     sqlx::query(
         "UPDATE recipes SET name = ?, description = ?, prep_time = ?, cook_time = ?,
                            servings = ?, image_path = ?, source_url = ?, notes = ?,
-                           updated_at = datetime('now')
+                           instructions = ?, updated_at = datetime('now')
          WHERE id = ?",
     )
     .bind(&input.name)
@@ -269,6 +295,7 @@ pub async fn update_recipe(id: &str, input: RecipeInput) -> Result<Recipe, AppEr
     .bind(&input.image_path)
     .bind(&input.source_url)
     .bind(&input.notes)
+    .bind(&instructions_json)
     .bind(id)
     .execute(pool)
     .await
@@ -436,5 +463,183 @@ mod tests {
 
         let result = get_recipe_by_id(&recipe.id).await;
         assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_create_recipe_with_instructions() {
+        init_db_for_test().await;
+
+        let input = RecipeInput {
+            name: "Recipe With Instructions".to_string(),
+            description: "Test recipe".to_string(),
+            prep_time: 10,
+            cook_time: 20,
+            servings: 4,
+            image_path: None,
+            source_url: None,
+            notes: None,
+            tags: vec![],
+            ingredients: vec![IngredientInput {
+                name: "Test Ingredient".to_string(),
+                quantity: 1.0,
+                unit: "cup".to_string(),
+                category: None,
+                notes: None,
+            }],
+            instructions: vec![
+                "Preheat oven to 350°F.".to_string(),
+                "Mix all ingredients.".to_string(),
+                "Bake for 30 minutes.".to_string(),
+            ],
+        };
+
+        let recipe = create_recipe(input).await.unwrap();
+
+        assert_eq!(recipe.instructions.len(), 3);
+        assert_eq!(recipe.instructions[0], "Preheat oven to 350°F.");
+        assert_eq!(recipe.instructions[1], "Mix all ingredients.");
+        assert_eq!(recipe.instructions[2], "Bake for 30 minutes.");
+
+        // Fetch and verify persistence
+        let fetched = get_recipe_by_id(&recipe.id).await.unwrap();
+        assert_eq!(fetched.instructions.len(), 3);
+        assert_eq!(fetched.instructions[0], "Preheat oven to 350°F.");
+    }
+
+    #[tokio::test]
+    async fn test_update_recipe_instructions() {
+        init_db_for_test().await;
+
+        // Create recipe with initial instructions
+        let input = RecipeInput {
+            name: "Update Instructions Test".to_string(),
+            description: "".to_string(),
+            prep_time: 0,
+            cook_time: 0,
+            servings: 1,
+            image_path: None,
+            source_url: None,
+            notes: None,
+            tags: vec![],
+            ingredients: vec![IngredientInput {
+                name: "Ingredient".to_string(),
+                quantity: 1.0,
+                unit: "cup".to_string(),
+                category: None,
+                notes: None,
+            }],
+            instructions: vec!["Step 1".to_string()],
+        };
+
+        let recipe = create_recipe(input).await.unwrap();
+        assert_eq!(recipe.instructions.len(), 1);
+
+        // Update with new instructions
+        let updated_input = RecipeInput {
+            name: "Update Instructions Test".to_string(),
+            description: "".to_string(),
+            prep_time: 0,
+            cook_time: 0,
+            servings: 1,
+            image_path: None,
+            source_url: None,
+            notes: None,
+            tags: vec![],
+            ingredients: vec![IngredientInput {
+                name: "Ingredient".to_string(),
+                quantity: 1.0,
+                unit: "cup".to_string(),
+                category: None,
+                notes: None,
+            }],
+            instructions: vec!["New Step 1".to_string(), "New Step 2".to_string()],
+        };
+
+        let updated = update_recipe(&recipe.id, updated_input).await.unwrap();
+
+        assert_eq!(updated.instructions.len(), 2);
+        assert_eq!(updated.instructions[0], "New Step 1");
+        assert_eq!(updated.instructions[1], "New Step 2");
+    }
+
+    #[tokio::test]
+    async fn test_recipe_empty_instructions() {
+        init_db_for_test().await;
+
+        let input = RecipeInput {
+            name: "No Instructions".to_string(),
+            description: "".to_string(),
+            prep_time: 0,
+            cook_time: 0,
+            servings: 1,
+            image_path: None,
+            source_url: None,
+            notes: None,
+            tags: vec![],
+            ingredients: vec![IngredientInput {
+                name: "Ingredient".to_string(),
+                quantity: 1.0,
+                unit: "cup".to_string(),
+                category: None,
+                notes: None,
+            }],
+            instructions: vec![], // Empty instructions
+        };
+
+        let recipe = create_recipe(input).await.unwrap();
+
+        assert!(recipe.instructions.is_empty());
+
+        // Fetch and verify
+        let fetched = get_recipe_by_id(&recipe.id).await.unwrap();
+        assert!(fetched.instructions.is_empty());
+    }
+
+    #[test]
+    fn test_parse_instructions_valid_json() {
+        let json = r#"["Step 1", "Step 2", "Step 3"]"#;
+        let result = parse_instructions(json);
+        assert_eq!(result.len(), 3);
+        assert_eq!(result[0], "Step 1");
+    }
+
+    #[test]
+    fn test_parse_instructions_empty_string() {
+        let result = parse_instructions("");
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_parse_instructions_empty_array() {
+        let result = parse_instructions("[]");
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_parse_instructions_malformed_json() {
+        // Should return empty vec, not panic
+        let result = parse_instructions("not valid json");
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_parse_instructions_non_array_json() {
+        // Object instead of array - should return empty vec
+        let result = parse_instructions(r#"{"step": "value"}"#);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_serialize_instructions() {
+        let instructions = vec!["Step 1".to_string(), "Step 2".to_string()];
+        let json = serialize_instructions(&instructions);
+        assert_eq!(json, r#"["Step 1","Step 2"]"#);
+    }
+
+    #[test]
+    fn test_serialize_empty_instructions() {
+        let instructions: Vec<String> = vec![];
+        let json = serialize_instructions(&instructions);
+        assert_eq!(json, "[]");
     }
 }

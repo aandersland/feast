@@ -80,7 +80,7 @@ pub async fn get_shopping_lists(week_start: &str) -> Result<Vec<ShoppingListWith
     let lists = sqlx::query_as::<_, ShoppingList>(
         "SELECT id, week_start, name, list_type, created_at
          FROM shopping_lists WHERE week_start = ?
-         ORDER BY created_at"
+         ORDER BY created_at",
     )
     .bind(week_start)
     .fetch_all(pool)
@@ -104,7 +104,7 @@ async fn get_list_items(list_id: &str) -> Result<Vec<ShoppingListItem>, AppError
                 is_checked, is_deleted, deleted_at, moved_to_list_id,
                 source_recipe_ids, created_at
          FROM shopping_list_items WHERE list_id = ?
-         ORDER BY category, name"
+         ORDER BY category, name",
     )
     .bind(list_id)
     .fetch_all(pool)
@@ -118,19 +118,17 @@ pub async fn create_shopping_list(input: ShoppingListInput) -> Result<ShoppingLi
     let id = Uuid::new_v4().to_string();
     let list_type = input.list_type.unwrap_or_else(|| "custom".to_string());
 
-    sqlx::query(
-        "INSERT INTO shopping_lists (id, week_start, name, list_type) VALUES (?, ?, ?, ?)"
-    )
-    .bind(&id)
-    .bind(&input.week_start)
-    .bind(&input.name)
-    .bind(&list_type)
-    .execute(pool)
-    .await
-    .map_err(|e| AppError::Database(e.to_string()))?;
+    sqlx::query("INSERT INTO shopping_lists (id, week_start, name, list_type) VALUES (?, ?, ?, ?)")
+        .bind(&id)
+        .bind(&input.week_start)
+        .bind(&input.name)
+        .bind(&list_type)
+        .execute(pool)
+        .await
+        .map_err(|e| AppError::Database(e.to_string()))?;
 
     sqlx::query_as::<_, ShoppingList>(
-        "SELECT id, week_start, name, list_type, created_at FROM shopping_lists WHERE id = ?"
+        "SELECT id, week_start, name, list_type, created_at FROM shopping_lists WHERE id = ?",
     )
     .bind(&id)
     .fetch_one(pool)
@@ -149,7 +147,9 @@ pub async fn delete_shopping_list(id: &str) -> Result<(), AppError> {
         .map_err(|e| AppError::Database(e.to_string()))?;
 
     if result.rows_affected() == 0 {
-        return Err(AppError::NotFound(format!("Shopping list with id {id} not found")));
+        return Err(AppError::NotFound(format!(
+            "Shopping list with id {id} not found"
+        )));
     }
 
     Ok(())
@@ -162,7 +162,7 @@ pub async fn add_shopping_item(input: ShoppingItemInput) -> Result<ShoppingListI
 
     sqlx::query(
         "INSERT INTO shopping_list_items (id, list_id, name, quantity, unit, category)
-         VALUES (?, ?, ?, ?, ?, ?)"
+         VALUES (?, ?, ?, ?, ?, ?)",
     )
     .bind(&id)
     .bind(&input.list_id)
@@ -178,7 +178,7 @@ pub async fn add_shopping_item(input: ShoppingItemInput) -> Result<ShoppingListI
         "SELECT id, list_id, ingredient_id, name, quantity, unit, category,
                 is_checked, is_deleted, deleted_at, moved_to_list_id,
                 source_recipe_ids, created_at
-         FROM shopping_list_items WHERE id = ?"
+         FROM shopping_list_items WHERE id = ?",
     )
     .bind(&id)
     .fetch_one(pool)
@@ -216,7 +216,7 @@ pub async fn update_shopping_item(
         "SELECT id, list_id, ingredient_id, name, quantity, unit, category,
                 is_checked, is_deleted, deleted_at, moved_to_list_id,
                 source_recipe_ids, created_at
-         FROM shopping_list_items WHERE id = ?"
+         FROM shopping_list_items WHERE id = ?",
     )
     .bind(id)
     .fetch_one(pool)
@@ -229,7 +229,7 @@ pub async fn soft_delete_shopping_item(id: &str) -> Result<(), AppError> {
     let pool = get_db_pool();
 
     let result = sqlx::query(
-        "UPDATE shopping_list_items SET is_deleted = 1, deleted_at = datetime('now') WHERE id = ?"
+        "UPDATE shopping_list_items SET is_deleted = 1, deleted_at = datetime('now') WHERE id = ?",
     )
     .bind(id)
     .execute(pool)
@@ -237,7 +237,9 @@ pub async fn soft_delete_shopping_item(id: &str) -> Result<(), AppError> {
     .map_err(|e| AppError::Database(e.to_string()))?;
 
     if result.rows_affected() == 0 {
-        return Err(AppError::NotFound(format!("Shopping item with id {id} not found")));
+        return Err(AppError::NotFound(format!(
+            "Shopping item with id {id} not found"
+        )));
     }
 
     Ok(())
@@ -248,7 +250,7 @@ pub async fn restore_shopping_item(id: &str) -> Result<ShoppingListItem, AppErro
     let pool = get_db_pool();
 
     let result = sqlx::query(
-        "UPDATE shopping_list_items SET is_deleted = 0, deleted_at = NULL WHERE id = ?"
+        "UPDATE shopping_list_items SET is_deleted = 0, deleted_at = NULL WHERE id = ?",
     )
     .bind(id)
     .execute(pool)
@@ -256,14 +258,16 @@ pub async fn restore_shopping_item(id: &str) -> Result<ShoppingListItem, AppErro
     .map_err(|e| AppError::Database(e.to_string()))?;
 
     if result.rows_affected() == 0 {
-        return Err(AppError::NotFound(format!("Shopping item with id {id} not found")));
+        return Err(AppError::NotFound(format!(
+            "Shopping item with id {id} not found"
+        )));
     }
 
     sqlx::query_as::<_, ShoppingListItem>(
         "SELECT id, list_id, ingredient_id, name, quantity, unit, category,
                 is_checked, is_deleted, deleted_at, moved_to_list_id,
                 source_recipe_ids, created_at
-         FROM shopping_list_items WHERE id = ?"
+         FROM shopping_list_items WHERE id = ?",
     )
     .bind(id)
     .fetch_one(pool)
@@ -275,21 +279,19 @@ pub async fn restore_shopping_item(id: &str) -> Result<ShoppingListItem, AppErro
 pub async fn move_shopping_item(id: &str, to_list_id: &str) -> Result<ShoppingListItem, AppError> {
     let pool = get_db_pool();
 
-    sqlx::query(
-        "UPDATE shopping_list_items SET list_id = ?, moved_to_list_id = ? WHERE id = ?"
-    )
-    .bind(to_list_id)
-    .bind(to_list_id)
-    .bind(id)
-    .execute(pool)
-    .await
-    .map_err(|e| AppError::Database(e.to_string()))?;
+    sqlx::query("UPDATE shopping_list_items SET list_id = ?, moved_to_list_id = ? WHERE id = ?")
+        .bind(to_list_id)
+        .bind(to_list_id)
+        .bind(id)
+        .execute(pool)
+        .await
+        .map_err(|e| AppError::Database(e.to_string()))?;
 
     sqlx::query_as::<_, ShoppingListItem>(
         "SELECT id, list_id, ingredient_id, name, quantity, unit, category,
                 is_checked, is_deleted, deleted_at, moved_to_list_id,
                 source_recipe_ids, created_at
-         FROM shopping_list_items WHERE id = ?"
+         FROM shopping_list_items WHERE id = ?",
     )
     .bind(id)
     .fetch_one(pool)
@@ -327,7 +329,7 @@ pub async fn get_aggregated_shopping_list(
          JOIN recipes r ON mp.recipe_id = r.id
          JOIN recipe_ingredients ri ON r.id = ri.recipe_id
          JOIN ingredients i ON ri.ingredient_id = i.id
-         WHERE mp.date >= ? AND mp.date <= ?"
+         WHERE mp.date >= ? AND mp.date <= ?",
     )
     .bind(start_date)
     .bind(end_date)
@@ -357,7 +359,8 @@ pub async fn get_aggregated_shopping_list(
                 quantities: vec![],
                 recipe_ids: vec![],
             })
-            .quantities.push((adjusted_qty, item.unit));
+            .quantities
+            .push((adjusted_qty, item.unit));
 
         let entry = grouped.get_mut(&key).unwrap();
         if !entry.recipe_ids.contains(&item.recipe_id) {
@@ -384,7 +387,9 @@ pub async fn get_aggregated_shopping_list(
 
     // Sort by category then name
     result.sort_by(|a, b| {
-        a.category.cmp(&b.category).then_with(|| a.name.cmp(&b.name))
+        a.category
+            .cmp(&b.category)
+            .then_with(|| a.name.cmp(&b.name))
     });
 
     Ok(result)

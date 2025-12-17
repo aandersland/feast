@@ -115,8 +115,9 @@
     }
   }
 
-  function handleImport(url: string) {
-    alert(`Recipe imported from: ${url}\n\n(In production, this would parse the URL)`);
+  function handleImport(recipe: Recipe) {
+    // Recipe already created by backend, just add to store
+    recipeStore.load(); // Refresh to get the new recipe
     modalView = "none";
   }
 
@@ -260,7 +261,7 @@
 
 <Modal isOpen={modalView === "import"} onClose={closeModal} title="Import Recipe">
   {#snippet children()}
-    <ImportRecipe onImport={handleImport} onCancel={closeModal} />
+    <ImportRecipe onSuccess={handleImport} onCancel={closeModal} />
   {/snippet}
 </Modal>
 

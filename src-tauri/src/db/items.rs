@@ -18,10 +18,12 @@ pub struct Item {
 pub async fn get_all_items() -> Result<Vec<Item>, AppError> {
     let pool = get_db_pool();
 
-    let items = sqlx::query_as::<_, Item>("SELECT id, name, created_at FROM items ORDER BY created_at DESC")
-        .fetch_all(pool)
-        .await
-        .map_err(|e| AppError::Database(e.to_string()))?;
+    let items = sqlx::query_as::<_, Item>(
+        "SELECT id, name, created_at FROM items ORDER BY created_at DESC",
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(|e| AppError::Database(e.to_string()))?;
 
     Ok(items)
 }

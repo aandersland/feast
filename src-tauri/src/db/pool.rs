@@ -117,7 +117,9 @@ mod tests {
             .expect("Failed to create in-memory database");
 
         // Run migrations twice - should not fail
-        run_migrations(&pool).await.expect("First migration run failed");
+        run_migrations(&pool)
+            .await
+            .expect("First migration run failed");
         let result = run_migrations(&pool).await;
         assert!(result.is_ok(), "Running migrations twice should succeed");
     }
