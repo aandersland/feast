@@ -133,6 +133,16 @@ status: complete
 - Identify barrel exports
 - Map configuration and wiring points
 
+### Test Discovery (test-finder)
+- Find test files, utilities, fixtures, and mocks
+- Identify testing framework and configuration
+- Use `overview` mode for high-level landscape, `detailed` for specific file locations
+
+### Test Analysis (test-analyzer)
+- Analyze what code paths are tested vs untested
+- Document test patterns, setup/teardown, mocking strategies
+- Use `coverage` mode for what's tested, `quality` mode for test patterns and structure
+
 ---
 
 ## Handling No Results

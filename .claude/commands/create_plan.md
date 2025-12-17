@@ -183,6 +183,9 @@ Continue refining until approved.
 | How is X done elsewhere? | codebase-finder patterns | with-examples |
 | How does THIS code work? | codebase-analyzer patterns | Deep trace |
 | Where does new code wire in? | integration-finder patterns | Registrations, exports |
+| Where are the tests? | test-finder patterns | overview or detailed |
+| What's tested? | test-analyzer patterns | coverage |
+| How are tests structured? | test-analyzer patterns | quality |
 
 ---
 

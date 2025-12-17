@@ -184,6 +184,10 @@ Agents are task specialists used internally by commands. You typically don't inv
 | `codebase-finder` | Locate files and patterns | "What files relate to X?" |
 | `codebase-analyzer` | Deep implementation analysis | "How does this code work?" |
 | `integration-finder` | Find wiring/registration points | "Where do I plug this in?" |
+| `test-finder` | Locate test files and infrastructure | "Where are the tests?" |
+| `test-analyzer` | Analyze test coverage and quality | "What's tested? How are tests structured?" |
+| `phase-implementer` | Execute single plan phase | Spawned by implement_plan coordinator |
+| `implementation-debugger` | Diagnose implementation failures | Spawned when phase-implementer is blocked |
 
 ### Agent Selection Guide
 
@@ -193,6 +197,9 @@ Agents are task specialists used internally by commands. You typically don't inv
 | How is X done elsewhere? | codebase-finder | with-examples |
 | How does THIS code work? | codebase-analyzer | — |
 | Where does new code wire in? | integration-finder | — |
+| Where are the tests? | test-finder | overview or detailed |
+| What code is tested? | test-analyzer | coverage |
+| How are tests structured? | test-analyzer | quality |
 
 ---
 
