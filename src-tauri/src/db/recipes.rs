@@ -5,6 +5,7 @@ use crate::db::pool::get_db_pool;
 use crate::error::AppError;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use std::time::Instant;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, FromRow)]
@@ -117,20 +118,29 @@ fn serialize_instructions(instructions: &[String]) -> String {
 /// Get all recipes (without ingredients for list view)
 pub async fn get_all_recipes() -> Result<Vec<RecipeRow>, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
-    sqlx::query_as::<_, RecipeRow>(
+    let result = sqlx::query_as::<_, RecipeRow>(
         "SELECT id, name, description, prep_time, cook_time, servings,
                 image_path, source_url, notes, instructions, created_at, updated_at
          FROM recipes ORDER BY created_at DESC",
     )
     .fetch_all(pool)
     .await
-    .map_err(|e| AppError::Database(e.to_string()))
+    .map_err(|e| AppError::Database(e.to_string()));
+
+    let elapsed = start.elapsed();
+    match &result {
+        Ok(rows) => log::debug!("db::get_all_recipes completed in {:?}, {} rows", elapsed, rows.len()),
+        Err(e) => log::debug!("db::get_all_recipes failed in {:?}: {}", elapsed, e),
+    }
+    result
 }
 
 /// Get a single recipe with all details
 pub async fn get_recipe_by_id(id: &str) -> Result<Recipe, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
     // Get recipe row
     let row = sqlx::query_as::<_, RecipeRow>(
@@ -171,6 +181,9 @@ pub async fn get_recipe_by_id(id: &str) -> Result<Recipe, AppError> {
     // Parse instructions from JSON
     let instructions = parse_instructions(&row.instructions);
 
+    let elapsed = start.elapsed();
+    log::debug!("db::get_recipe_by_id completed in {:?}, {} ingredients, {} tags", elapsed, ingredients.len(), tags.len());
+
     Ok(Recipe {
         id: row.id,
         name: row.name,
@@ -201,6 +214,7 @@ pub async fn get_recipe_by_id(id: &str) -> Result<Recipe, AppError> {
 /// Create a new recipe with ingredients
 pub async fn create_recipe(input: RecipeInput) -> Result<Recipe, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
     let recipe_id = Uuid::new_v4().to_string();
 
     // Serialize instructions to JSON
@@ -259,12 +273,16 @@ pub async fn create_recipe(input: RecipeInput) -> Result<Recipe, AppError> {
             .map_err(|e| AppError::Database(e.to_string()))?;
     }
 
+    let elapsed = start.elapsed();
+    log::debug!("db::create_recipe completed in {:?}, 1 row", elapsed);
+
     get_recipe_by_id(&recipe_id).await
 }
 
 /// Update an existing recipe
 pub async fn update_recipe(id: &str, input: RecipeInput) -> Result<Recipe, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
     // Verify recipe exists
     let existing = sqlx::query("SELECT id FROM recipes WHERE id = ?")
@@ -274,6 +292,8 @@ pub async fn update_recipe(id: &str, input: RecipeInput) -> Result<Recipe, AppEr
         .map_err(|e| AppError::Database(e.to_string()))?;
 
     if existing.is_none() {
+        let elapsed = start.elapsed();
+        log::debug!("db::update_recipe failed in {:?}: recipe not found", elapsed);
         return Err(AppError::NotFound(format!("Recipe with id {id} not found")));
     }
 
@@ -347,12 +367,16 @@ pub async fn update_recipe(id: &str, input: RecipeInput) -> Result<Recipe, AppEr
             .map_err(|e| AppError::Database(e.to_string()))?;
     }
 
+    let elapsed = start.elapsed();
+    log::debug!("db::update_recipe completed in {:?}, 1 row", elapsed);
+
     get_recipe_by_id(id).await
 }
 
 /// Delete a recipe
 pub async fn delete_recipe(id: &str) -> Result<(), AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
     let result = sqlx::query("DELETE FROM recipes WHERE id = ?")
         .bind(id)
@@ -360,10 +384,13 @@ pub async fn delete_recipe(id: &str) -> Result<(), AppError> {
         .await
         .map_err(|e| AppError::Database(e.to_string()))?;
 
+    let elapsed = start.elapsed();
     if result.rows_affected() == 0 {
+        log::debug!("db::delete_recipe failed in {:?}: recipe not found", elapsed);
         return Err(AppError::NotFound(format!("Recipe with id {id} not found")));
     }
 
+    log::debug!("db::delete_recipe completed in {:?}, deleted", elapsed);
     Ok(())
 }
 

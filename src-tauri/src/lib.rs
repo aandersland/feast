@@ -3,6 +3,7 @@
 #![warn(clippy::all)]
 
 pub mod commands;
+pub mod correlation;
 pub mod db;
 pub mod error;
 pub mod http;

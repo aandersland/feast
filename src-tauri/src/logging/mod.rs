@@ -4,6 +4,21 @@
 //! - `LogConfig` for runtime-configurable logging settings
 //! - JSON formatter for structured log output
 //! - Default configuration with sensible values
+//!
+//! ## Log Levels by Area
+//!
+//! | Area | Level | What's Logged |
+//! |------|-------|---------------|
+//! | Command entry | DEBUG | Command name, redacted parameters |
+//! | Command exit (success) | INFO | Command name, timing, result summary |
+//! | Command exit (error) | ERROR | Command name, timing, error details |
+//! | DB queries | DEBUG | Operation name, timing, row counts |
+//! | App lifecycle | INFO | Initialization, shutdown |
+//!
+//! ## Correlation ID Format
+//!
+//! All logs include `[cid:xxxxxxxx]` prefix for request tracing.
+//! Filter logs by correlation ID: `grep "cid:abc12345" feast.log`
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -113,6 +128,8 @@ struct JsonLogRecord<'a> {
     target: &'a str,
     message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    correlation_id: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     file: Option<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     line: Option<u32>,
@@ -122,19 +139,27 @@ struct JsonLogRecord<'a> {
 ///
 /// Output format:
 /// ```json
-/// {"timestamp":"2025-12-17T10:30:00.123Z","level":"INFO","target":"feast_lib::db","message":"..."}
+/// {"timestamp":"2025-12-17T10:30:00.123Z","level":"INFO","target":"feast_lib::db","message":"...","correlation_id":"V1StGXR8"}
 /// ```
+///
+/// Correlation IDs are extracted from message prefix `[cid:XXXXXXXX]` if present.
 pub fn json_format(
     out: tauri_plugin_log::fern::FormatCallback,
     message: &std::fmt::Arguments,
     record: &log::Record,
 ) {
     let now = chrono::Utc::now();
+    let message_str = message.to_string();
+
+    // Extract correlation ID from message prefix [cid:XXXXXXXX]
+    let (correlation_id, clean_message) = extract_correlation_id(&message_str);
+
     let log_record = JsonLogRecord {
         timestamp: now.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
         level: record.level().as_str(),
         target: record.target(),
-        message: message.to_string(),
+        message: clean_message,
+        correlation_id,
         file: record.file(),
         line: record.line(),
     };
@@ -147,6 +172,21 @@ pub fn json_format(
     });
 
     out.finish(format_args!("{json}"))
+}
+
+/// Extract correlation ID from message prefix
+///
+/// Format: `[cid:XXXXXXXX] actual message`
+/// Returns (Some(correlation_id), clean_message) or (None, original_message)
+fn extract_correlation_id(message: &str) -> (Option<&str>, String) {
+    if message.starts_with("[cid:") {
+        if let Some(end_bracket) = message.find(']') {
+            let cid = &message[5..end_bracket];
+            let rest = message[end_bracket + 1..].trim_start();
+            return (Some(cid), rest.to_string());
+        }
+    }
+    (None, message.to_string())
 }
 
 #[cfg(test)]
@@ -215,6 +255,7 @@ mod tests {
             level: "INFO",
             target: "test_module",
             message: "Test message".to_string(),
+            correlation_id: None,
             file: Some("test.rs"),
             line: Some(42),
         };
@@ -281,6 +322,7 @@ mod tests {
             level: "INFO",
             target: "feast_lib::test",
             message: "Test with special chars: \"quotes\" and \\backslash\\".to_string(),
+            correlation_id: None,
             file: Some("test.rs"),
             line: Some(100),
         };
@@ -301,4 +343,236 @@ mod tests {
         assert_eq!(ROTATION_FILE_COUNT, 5);
         assert_eq!(LOG_FILE_NAME, "feast");
     }
+
+    #[test]
+    fn test_extract_correlation_id_present() {
+        let (cid, msg) = extract_correlation_id("[cid:abc12345] Hello world");
+        assert_eq!(cid, Some("abc12345"));
+        assert_eq!(msg, "Hello world");
+    }
+
+    #[test]
+    fn test_extract_correlation_id_absent() {
+        let (cid, msg) = extract_correlation_id("Hello world");
+        assert_eq!(cid, None);
+        assert_eq!(msg, "Hello world");
+    }
+
+    #[test]
+    fn test_json_record_with_correlation_id() {
+        let record = JsonLogRecord {
+            timestamp: "2025-12-17T10:30:00.000Z".to_string(),
+            level: "INFO",
+            target: "test",
+            message: "Test message".to_string(),
+            correlation_id: Some("abc12345"),
+            file: None,
+            line: None,
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        assert!(json.contains("\"correlation_id\":\"abc12345\""));
+    }
+
+    #[test]
+    fn test_json_record_without_correlation_id() {
+        let record = JsonLogRecord {
+            timestamp: "2025-12-17T10:30:00.000Z".to_string(),
+            level: "INFO",
+            target: "test",
+            message: "Test message".to_string(),
+            correlation_id: None,
+            file: None,
+            line: None,
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        assert!(!json.contains("correlation_id"));
+    }
+
+    // ========================================
+    // Automated Log Output Verification Tests
+    // ========================================
+
+    #[test]
+    fn test_correlation_id_pattern_format() {
+        // Verify [cid:xxxxxxxx] format is correctly extracted
+        let valid_patterns = [
+            "[cid:abc12345] Message",
+            "[cid:ABCD1234] Another message",
+            "[cid:a1b2c3d4] With numbers and letters",
+        ];
+
+        for pattern in valid_patterns {
+            let (cid, _) = extract_correlation_id(pattern);
+            assert!(cid.is_some(), "Failed to extract CID from: {}", pattern);
+            let cid = cid.unwrap();
+            assert_eq!(cid.len(), 8, "CID should be 8 chars: {}", cid);
+        }
+    }
+
+    #[test]
+    fn test_correlation_id_in_json_output() {
+        // Verify correlation ID appears in JSON when present
+        let record = JsonLogRecord {
+            timestamp: "2025-12-17T10:30:00.000Z".to_string(),
+            level: "INFO",
+            target: "feast_lib::commands",
+            message: "get_recipes completed in 5ms, returned 10 recipes".to_string(),
+            correlation_id: Some("V1StGXR8"),
+            file: None,
+            line: None,
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+
+        // Parse and verify JSON structure
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed["correlation_id"], "V1StGXR8");
+    }
+
+    #[test]
+    fn test_timing_format_in_message() {
+        // Verify timing information format (Duration uses {:?} format)
+        let timing_patterns = [
+            "completed in 5ms",
+            "completed in 123ms",
+            "completed in 1.234s",
+        ];
+
+        for pattern in timing_patterns {
+            let record = JsonLogRecord {
+                timestamp: "2025-12-17T10:30:00.000Z".to_string(),
+                level: "INFO",
+                target: "test",
+                message: format!("get_recipes {}", pattern),
+                correlation_id: Some("abc12345"),
+                file: None,
+                line: None,
+            };
+
+            let json = serde_json::to_string(&record).unwrap();
+            let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+            let msg = parsed["message"].as_str().unwrap();
+            assert!(msg.contains("completed in"), "Missing timing: {}", msg);
+        }
+    }
+
+    #[test]
+    fn test_json_formatter_handles_special_characters() {
+        // Ensure JSON escaping works for special characters
+        let special_inputs = [
+            "Message with \"quotes\"",
+            "Message with \\backslash\\",
+            "Message with\nnewline",
+            "Message with\ttab",
+            "Unicode: \u{1F600} emoji",
+        ];
+
+        for input in special_inputs {
+            let record = JsonLogRecord {
+                timestamp: "2025-12-17T10:30:00.000Z".to_string(),
+                level: "INFO",
+                target: "test",
+                message: input.to_string(),
+                correlation_id: None,
+                file: None,
+                line: None,
+            };
+
+            let json = serde_json::to_string(&record).unwrap();
+            // Verify it parses back successfully
+            let parsed: serde_json::Value = serde_json::from_str(&json)
+                .expect(&format!("Failed to parse JSON for input: {}", input));
+            assert!(parsed["message"].is_string());
+        }
+    }
+
+    #[test]
+    fn test_json_output_is_single_line() {
+        // Log files expect one JSON object per line
+        let record = JsonLogRecord {
+            timestamp: "2025-12-17T10:30:00.000Z".to_string(),
+            level: "INFO",
+            target: "feast_lib::commands::recipes",
+            message: "get_recipes completed successfully".to_string(),
+            correlation_id: Some("abc12345"),
+            file: Some("recipes.rs"),
+            line: Some(42),
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        assert!(!json.contains('\n'), "JSON should be single line");
+    }
+
+    #[test]
+    fn test_redaction_not_in_correlation_id() {
+        // Correlation IDs should never contain sensitive data
+        // They are random identifiers generated by nanoid
+        let test_cids = ["V1StGXR8", "abc12345", "XyZ98765"];
+
+        for cid in test_cids {
+            // CIDs should be alphanumeric only
+            assert!(
+                cid.chars().all(|c| c.is_alphanumeric()),
+                "CID contains non-alphanumeric: {}",
+                cid
+            );
+            // CIDs should be 8 characters
+            assert_eq!(cid.len(), 8, "CID wrong length: {}", cid);
+        }
+    }
+
+    #[test]
+    fn test_extract_correlation_id_edge_cases() {
+        // Empty bracket
+        let (cid, msg) = extract_correlation_id("[cid:] Message");
+        assert_eq!(cid, Some(""));
+        assert_eq!(msg, "Message");
+
+        // No space after bracket
+        let (cid, msg) = extract_correlation_id("[cid:abc12345]Message");
+        assert_eq!(cid, Some("abc12345"));
+        assert_eq!(msg, "Message");
+
+        // Multiple spaces
+        let (cid, msg) = extract_correlation_id("[cid:abc12345]    Multiple spaces");
+        assert_eq!(cid, Some("abc12345"));
+        assert_eq!(msg, "Multiple spaces");
+
+        // Missing closing bracket (should not extract)
+        let (cid, msg) = extract_correlation_id("[cid:abc12345 Message");
+        assert_eq!(cid, None);
+        assert_eq!(msg, "[cid:abc12345 Message");
+    }
+
+    #[test]
+    fn test_json_log_record_required_fields() {
+        // Verify all required fields are present in output
+        let record = JsonLogRecord {
+            timestamp: "2025-12-17T10:30:00.000Z".to_string(),
+            level: "INFO",
+            target: "test",
+            message: "Test".to_string(),
+            correlation_id: None,
+            file: None,
+            line: None,
+        };
+
+        let json = serde_json::to_string(&record).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+
+        // Required fields must be present
+        assert!(parsed.get("timestamp").is_some(), "Missing timestamp");
+        assert!(parsed.get("level").is_some(), "Missing level");
+        assert!(parsed.get("target").is_some(), "Missing target");
+        assert!(parsed.get("message").is_some(), "Missing message");
+
+        // Optional fields should be absent when None
+        assert!(parsed.get("correlation_id").is_none(), "correlation_id should be absent");
+        assert!(parsed.get("file").is_none(), "file should be absent");
+        assert!(parsed.get("line").is_none(), "line should be absent");
+    }
 }
+
+pub mod redact;

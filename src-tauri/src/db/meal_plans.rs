@@ -4,6 +4,7 @@ use crate::db::pool::get_db_pool;
 use crate::error::AppError;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use std::time::Instant;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, FromRow)]
@@ -29,8 +30,9 @@ pub struct MealPlanInput {
 /// Get meal plans for a date range
 pub async fn get_meal_plans(start_date: &str, end_date: &str) -> Result<Vec<MealPlan>, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
-    sqlx::query_as::<_, MealPlan>(
+    let result = sqlx::query_as::<_, MealPlan>(
         "SELECT id, date, meal_type, recipe_id, servings, created_at
          FROM meal_plans
          WHERE date >= ? AND date <= ?
@@ -46,12 +48,20 @@ pub async fn get_meal_plans(start_date: &str, end_date: &str) -> Result<Vec<Meal
     .bind(end_date)
     .fetch_all(pool)
     .await
-    .map_err(|e| AppError::Database(e.to_string()))
+    .map_err(|e| AppError::Database(e.to_string()));
+
+    let elapsed = start.elapsed();
+    match &result {
+        Ok(rows) => log::debug!("db::get_meal_plans completed in {:?}, {} rows", elapsed, rows.len()),
+        Err(e) => log::debug!("db::get_meal_plans failed in {:?}: {}", elapsed, e),
+    }
+    result
 }
 
 /// Create a meal plan entry
 pub async fn create_meal_plan(input: MealPlanInput) -> Result<MealPlan, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
     let id = Uuid::new_v4().to_string();
 
     // Validate meal_type
@@ -75,19 +85,27 @@ pub async fn create_meal_plan(input: MealPlanInput) -> Result<MealPlan, AppError
     .await
     .map_err(|e| AppError::Database(e.to_string()))?;
 
-    sqlx::query_as::<_, MealPlan>(
+    let result = sqlx::query_as::<_, MealPlan>(
         "SELECT id, date, meal_type, recipe_id, servings, created_at
          FROM meal_plans WHERE id = ?",
     )
     .bind(&id)
     .fetch_one(pool)
     .await
-    .map_err(|e| AppError::Database(e.to_string()))
+    .map_err(|e| AppError::Database(e.to_string()));
+
+    let elapsed = start.elapsed();
+    match &result {
+        Ok(_) => log::debug!("db::create_meal_plan completed in {:?}, 1 row", elapsed),
+        Err(e) => log::debug!("db::create_meal_plan failed in {:?}: {}", elapsed, e),
+    }
+    result
 }
 
 /// Update meal plan servings
 pub async fn update_meal_plan(id: &str, servings: i64) -> Result<MealPlan, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
     let result = sqlx::query("UPDATE meal_plans SET servings = ? WHERE id = ?")
         .bind(servings)
@@ -96,25 +114,35 @@ pub async fn update_meal_plan(id: &str, servings: i64) -> Result<MealPlan, AppEr
         .await
         .map_err(|e| AppError::Database(e.to_string()))?;
 
+    let elapsed = start.elapsed();
     if result.rows_affected() == 0 {
+        log::debug!("db::update_meal_plan failed in {:?}: meal plan not found", elapsed);
         return Err(AppError::NotFound(format!(
             "Meal plan with id {id} not found"
         )));
     }
 
-    sqlx::query_as::<_, MealPlan>(
+    let fetch_result = sqlx::query_as::<_, MealPlan>(
         "SELECT id, date, meal_type, recipe_id, servings, created_at
          FROM meal_plans WHERE id = ?",
     )
     .bind(id)
     .fetch_one(pool)
     .await
-    .map_err(|e| AppError::Database(e.to_string()))
+    .map_err(|e| AppError::Database(e.to_string()));
+
+    let total_elapsed = start.elapsed();
+    match &fetch_result {
+        Ok(_) => log::debug!("db::update_meal_plan completed in {:?}, 1 row", total_elapsed),
+        Err(e) => log::debug!("db::update_meal_plan failed in {:?}: {}", total_elapsed, e),
+    }
+    fetch_result
 }
 
 /// Delete a meal plan entry
 pub async fn delete_meal_plan(id: &str) -> Result<(), AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
     let result = sqlx::query("DELETE FROM meal_plans WHERE id = ?")
         .bind(id)
@@ -122,12 +150,15 @@ pub async fn delete_meal_plan(id: &str) -> Result<(), AppError> {
         .await
         .map_err(|e| AppError::Database(e.to_string()))?;
 
+    let elapsed = start.elapsed();
     if result.rows_affected() == 0 {
+        log::debug!("db::delete_meal_plan failed in {:?}: meal plan not found", elapsed);
         return Err(AppError::NotFound(format!(
             "Meal plan with id {id} not found"
         )));
     }
 
+    log::debug!("db::delete_meal_plan completed in {:?}, deleted", elapsed);
     Ok(())
 }
 

@@ -5,6 +5,7 @@ use crate::error::AppError;
 use crate::utils::units::aggregate_quantities;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use std::time::Instant;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, FromRow)]
@@ -76,6 +77,7 @@ pub struct AggregatedShoppingItem {
 /// Get shopping lists for a week
 pub async fn get_shopping_lists(week_start: &str) -> Result<Vec<ShoppingListWithItems>, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
     let lists = sqlx::query_as::<_, ShoppingList>(
         "SELECT id, week_start, name, list_type, created_at
@@ -93,13 +95,17 @@ pub async fn get_shopping_lists(week_start: &str) -> Result<Vec<ShoppingListWith
         result.push(ShoppingListWithItems { list, items });
     }
 
+    let elapsed = start.elapsed();
+    log::debug!("db::get_shopping_lists completed in {:?}, {} lists", elapsed, result.len());
+
     Ok(result)
 }
 
 async fn get_list_items(list_id: &str) -> Result<Vec<ShoppingListItem>, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
-    sqlx::query_as::<_, ShoppingListItem>(
+    let result = sqlx::query_as::<_, ShoppingListItem>(
         "SELECT id, list_id, ingredient_id, name, quantity, unit, category,
                 is_checked, is_deleted, deleted_at, moved_to_list_id,
                 source_recipe_ids, created_at
@@ -109,12 +115,20 @@ async fn get_list_items(list_id: &str) -> Result<Vec<ShoppingListItem>, AppError
     .bind(list_id)
     .fetch_all(pool)
     .await
-    .map_err(|e| AppError::Database(e.to_string()))
+    .map_err(|e| AppError::Database(e.to_string()));
+
+    let elapsed = start.elapsed();
+    match &result {
+        Ok(rows) => log::debug!("db::get_list_items completed in {:?}, {} rows", elapsed, rows.len()),
+        Err(e) => log::debug!("db::get_list_items failed in {:?}: {}", elapsed, e),
+    }
+    result
 }
 
 /// Create a shopping list
 pub async fn create_shopping_list(input: ShoppingListInput) -> Result<ShoppingList, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
     let id = Uuid::new_v4().to_string();
     let list_type = input.list_type.unwrap_or_else(|| "custom".to_string());
 
@@ -127,18 +141,26 @@ pub async fn create_shopping_list(input: ShoppingListInput) -> Result<ShoppingLi
         .await
         .map_err(|e| AppError::Database(e.to_string()))?;
 
-    sqlx::query_as::<_, ShoppingList>(
+    let result = sqlx::query_as::<_, ShoppingList>(
         "SELECT id, week_start, name, list_type, created_at FROM shopping_lists WHERE id = ?",
     )
     .bind(&id)
     .fetch_one(pool)
     .await
-    .map_err(|e| AppError::Database(e.to_string()))
+    .map_err(|e| AppError::Database(e.to_string()));
+
+    let elapsed = start.elapsed();
+    match &result {
+        Ok(_) => log::debug!("db::create_shopping_list completed in {:?}, 1 row", elapsed),
+        Err(e) => log::debug!("db::create_shopping_list failed in {:?}: {}", elapsed, e),
+    }
+    result
 }
 
 /// Delete a shopping list
 pub async fn delete_shopping_list(id: &str) -> Result<(), AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
     let result = sqlx::query("DELETE FROM shopping_lists WHERE id = ?")
         .bind(id)
@@ -146,18 +168,22 @@ pub async fn delete_shopping_list(id: &str) -> Result<(), AppError> {
         .await
         .map_err(|e| AppError::Database(e.to_string()))?;
 
+    let elapsed = start.elapsed();
     if result.rows_affected() == 0 {
+        log::debug!("db::delete_shopping_list failed in {:?}: shopping list not found", elapsed);
         return Err(AppError::NotFound(format!(
             "Shopping list with id {id} not found"
         )));
     }
 
+    log::debug!("db::delete_shopping_list completed in {:?}, deleted", elapsed);
     Ok(())
 }
 
 /// Add an item to a shopping list
 pub async fn add_shopping_item(input: ShoppingItemInput) -> Result<ShoppingListItem, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
     let id = Uuid::new_v4().to_string();
 
     sqlx::query(
@@ -174,7 +200,7 @@ pub async fn add_shopping_item(input: ShoppingItemInput) -> Result<ShoppingListI
     .await
     .map_err(|e| AppError::Database(e.to_string()))?;
 
-    sqlx::query_as::<_, ShoppingListItem>(
+    let result = sqlx::query_as::<_, ShoppingListItem>(
         "SELECT id, list_id, ingredient_id, name, quantity, unit, category,
                 is_checked, is_deleted, deleted_at, moved_to_list_id,
                 source_recipe_ids, created_at
@@ -183,7 +209,14 @@ pub async fn add_shopping_item(input: ShoppingItemInput) -> Result<ShoppingListI
     .bind(&id)
     .fetch_one(pool)
     .await
-    .map_err(|e| AppError::Database(e.to_string()))
+    .map_err(|e| AppError::Database(e.to_string()));
+
+    let elapsed = start.elapsed();
+    match &result {
+        Ok(_) => log::debug!("db::add_shopping_item completed in {:?}, 1 row", elapsed),
+        Err(e) => log::debug!("db::add_shopping_item failed in {:?}: {}", elapsed, e),
+    }
+    result
 }
 
 /// Update a shopping item
@@ -193,6 +226,7 @@ pub async fn update_shopping_item(
     is_checked: Option<bool>,
 ) -> Result<ShoppingListItem, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
     if let Some(qty) = quantity {
         sqlx::query("UPDATE shopping_list_items SET quantity = ? WHERE id = ?")
@@ -212,7 +246,7 @@ pub async fn update_shopping_item(
             .map_err(|e| AppError::Database(e.to_string()))?;
     }
 
-    sqlx::query_as::<_, ShoppingListItem>(
+    let result = sqlx::query_as::<_, ShoppingListItem>(
         "SELECT id, list_id, ingredient_id, name, quantity, unit, category,
                 is_checked, is_deleted, deleted_at, moved_to_list_id,
                 source_recipe_ids, created_at
@@ -221,12 +255,20 @@ pub async fn update_shopping_item(
     .bind(id)
     .fetch_one(pool)
     .await
-    .map_err(|e| AppError::Database(e.to_string()))
+    .map_err(|e| AppError::Database(e.to_string()));
+
+    let elapsed = start.elapsed();
+    match &result {
+        Ok(_) => log::debug!("db::update_shopping_item completed in {:?}, 1 row", elapsed),
+        Err(e) => log::debug!("db::update_shopping_item failed in {:?}: {}", elapsed, e),
+    }
+    result
 }
 
 /// Soft delete an item
 pub async fn soft_delete_shopping_item(id: &str) -> Result<(), AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
     let result = sqlx::query(
         "UPDATE shopping_list_items SET is_deleted = 1, deleted_at = datetime('now') WHERE id = ?",
@@ -236,18 +278,22 @@ pub async fn soft_delete_shopping_item(id: &str) -> Result<(), AppError> {
     .await
     .map_err(|e| AppError::Database(e.to_string()))?;
 
+    let elapsed = start.elapsed();
     if result.rows_affected() == 0 {
+        log::debug!("db::soft_delete_shopping_item failed in {:?}: item not found", elapsed);
         return Err(AppError::NotFound(format!(
             "Shopping item with id {id} not found"
         )));
     }
 
+    log::debug!("db::soft_delete_shopping_item completed in {:?}, 1 row", elapsed);
     Ok(())
 }
 
 /// Restore a soft-deleted item
 pub async fn restore_shopping_item(id: &str) -> Result<ShoppingListItem, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
     let result = sqlx::query(
         "UPDATE shopping_list_items SET is_deleted = 0, deleted_at = NULL WHERE id = ?",
@@ -257,13 +303,15 @@ pub async fn restore_shopping_item(id: &str) -> Result<ShoppingListItem, AppErro
     .await
     .map_err(|e| AppError::Database(e.to_string()))?;
 
+    let elapsed = start.elapsed();
     if result.rows_affected() == 0 {
+        log::debug!("db::restore_shopping_item failed in {:?}: item not found", elapsed);
         return Err(AppError::NotFound(format!(
             "Shopping item with id {id} not found"
         )));
     }
 
-    sqlx::query_as::<_, ShoppingListItem>(
+    let fetch_result = sqlx::query_as::<_, ShoppingListItem>(
         "SELECT id, list_id, ingredient_id, name, quantity, unit, category,
                 is_checked, is_deleted, deleted_at, moved_to_list_id,
                 source_recipe_ids, created_at
@@ -272,12 +320,20 @@ pub async fn restore_shopping_item(id: &str) -> Result<ShoppingListItem, AppErro
     .bind(id)
     .fetch_one(pool)
     .await
-    .map_err(|e| AppError::Database(e.to_string()))
+    .map_err(|e| AppError::Database(e.to_string()));
+
+    let total_elapsed = start.elapsed();
+    match &fetch_result {
+        Ok(_) => log::debug!("db::restore_shopping_item completed in {:?}, 1 row", total_elapsed),
+        Err(e) => log::debug!("db::restore_shopping_item failed in {:?}: {}", total_elapsed, e),
+    }
+    fetch_result
 }
 
 /// Move an item to another list
 pub async fn move_shopping_item(id: &str, to_list_id: &str) -> Result<ShoppingListItem, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
     sqlx::query("UPDATE shopping_list_items SET list_id = ?, moved_to_list_id = ? WHERE id = ?")
         .bind(to_list_id)
@@ -287,7 +343,7 @@ pub async fn move_shopping_item(id: &str, to_list_id: &str) -> Result<ShoppingLi
         .await
         .map_err(|e| AppError::Database(e.to_string()))?;
 
-    sqlx::query_as::<_, ShoppingListItem>(
+    let result = sqlx::query_as::<_, ShoppingListItem>(
         "SELECT id, list_id, ingredient_id, name, quantity, unit, category,
                 is_checked, is_deleted, deleted_at, moved_to_list_id,
                 source_recipe_ids, created_at
@@ -296,7 +352,14 @@ pub async fn move_shopping_item(id: &str, to_list_id: &str) -> Result<ShoppingLi
     .bind(id)
     .fetch_one(pool)
     .await
-    .map_err(|e| AppError::Database(e.to_string()))
+    .map_err(|e| AppError::Database(e.to_string()));
+
+    let elapsed = start.elapsed();
+    match &result {
+        Ok(_) => log::debug!("db::move_shopping_item completed in {:?}, 1 row", elapsed),
+        Err(e) => log::debug!("db::move_shopping_item failed in {:?}: {}", elapsed, e),
+    }
+    result
 }
 
 /// Get aggregated shopping list from meal plans for a date range
@@ -305,6 +368,7 @@ pub async fn get_aggregated_shopping_list(
     end_date: &str,
 ) -> Result<Vec<AggregatedShoppingItem>, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
     // Get all ingredients from meal plans in date range
     #[derive(FromRow)]
@@ -336,6 +400,9 @@ pub async fn get_aggregated_shopping_list(
     .fetch_all(pool)
     .await
     .map_err(|e| AppError::Database(e.to_string()))?;
+
+    let query_elapsed = start.elapsed();
+    log::debug!("db::get_aggregated_shopping_list query completed in {:?}, {} raw items", query_elapsed, items.len());
 
     // Group by ingredient name (lowercase) and aggregate
     use std::collections::HashMap;
@@ -391,6 +458,9 @@ pub async fn get_aggregated_shopping_list(
             .cmp(&b.category)
             .then_with(|| a.name.cmp(&b.name))
     });
+
+    let total_elapsed = start.elapsed();
+    log::debug!("db::get_aggregated_shopping_list completed in {:?}, {} aggregated items", total_elapsed, result.len());
 
     Ok(result)
 }

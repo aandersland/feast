@@ -14,6 +14,9 @@ pub struct FrontendLogEntry {
     pub message: String,
     /// Source target (e.g., "frontend::ShoppingList")
     pub target: String,
+    /// Optional correlation ID for request tracing
+    #[serde(default)]
+    pub correlation_id: Option<String>,
     /// Optional structured data as key-value pairs
     #[serde(default)]
     pub data: HashMap<String, serde_json::Value>,
@@ -26,7 +29,7 @@ pub struct FrontendLogEntry {
 #[command]
 pub fn log_from_frontend(entries: Vec<FrontendLogEntry>) -> Result<(), String> {
     for entry in entries {
-        let message = if entry.data.is_empty() {
+        let base_message = if entry.data.is_empty() {
             entry.message
         } else {
             // Append structured data as JSON
@@ -34,6 +37,12 @@ pub fn log_from_frontend(entries: Vec<FrontendLogEntry>) -> Result<(), String> {
                 Ok(data_json) => format!("{} | {}", entry.message, data_json),
                 Err(_) => entry.message,
             }
+        };
+
+        // Prepend correlation ID if present
+        let message = match &entry.correlation_id {
+            Some(cid) if !cid.is_empty() => format!("[cid:{}] {}", cid, base_message),
+            _ => base_message,
         };
 
         match entry.level.to_lowercase().as_str() {
@@ -66,6 +75,20 @@ mod tests {
         assert_eq!(entry.message, "Test message");
         assert_eq!(entry.target, "frontend::TestComponent");
         assert!(entry.data.is_empty());
+        assert!(entry.correlation_id.is_none());
+    }
+
+    #[test]
+    fn test_frontend_log_entry_with_correlation_id() {
+        let json = r#"{
+            "level": "info",
+            "message": "Test message",
+            "target": "frontend::TestComponent",
+            "correlationId": "abc12345"
+        }"#;
+
+        let entry: FrontendLogEntry = serde_json::from_str(json).unwrap();
+        assert_eq!(entry.correlation_id, Some("abc12345".to_string()));
     }
 
     #[test]

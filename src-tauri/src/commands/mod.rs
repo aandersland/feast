@@ -9,6 +9,9 @@ pub mod quick_lists;
 pub mod recipes;
 pub mod shopping_lists;
 
+use crate::correlation::ensure_correlation_id;
+use crate::logging::redact;
+use std::time::Instant;
 use tauri::command;
 
 pub use ingredients::{create_ingredient, get_ingredients, get_or_create_ingredient};
@@ -32,6 +35,14 @@ pub use logging::log_from_frontend;
 /// Greet a user by name
 #[command]
 #[must_use]
-pub fn greet(name: &str) -> String {
-    format!("Hello, {name}! Welcome to feast.")
+pub fn greet(name: &str, correlation_id: Option<String>) -> String {
+    let cid = ensure_correlation_id(correlation_id);
+    let start = Instant::now();
+    log::debug!("[cid:{}] greet called, {}", cid, redact::redact_string(Some(name), "name"));
+
+    let result = format!("Hello, {name}! Welcome to feast.");
+
+    let elapsed = start.elapsed();
+    log::info!("[cid:{}] greet succeeded in {:?}", cid, elapsed);
+    result
 }

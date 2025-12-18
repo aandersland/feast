@@ -4,6 +4,7 @@ use crate::db::pool::get_db_pool;
 use crate::error::AppError;
 use serde::Serialize;
 use sqlx::FromRow;
+use std::time::Instant;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, FromRow)]
@@ -18,13 +19,21 @@ pub struct Ingredient {
 /// Get all ingredients
 pub async fn get_all_ingredients() -> Result<Vec<Ingredient>, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
-    sqlx::query_as::<_, Ingredient>(
+    let result = sqlx::query_as::<_, Ingredient>(
         "SELECT id, name, category, default_unit FROM ingredients ORDER BY name",
     )
     .fetch_all(pool)
     .await
-    .map_err(|e| AppError::Database(e.to_string()))
+    .map_err(|e| AppError::Database(e.to_string()));
+
+    let elapsed = start.elapsed();
+    match &result {
+        Ok(rows) => log::debug!("db::get_all_ingredients completed in {:?}, {} rows", elapsed, rows.len()),
+        Err(e) => log::debug!("db::get_all_ingredients failed in {:?}: {}", elapsed, e),
+    }
+    result
 }
 
 /// Create a new ingredient
@@ -34,6 +43,7 @@ pub async fn create_ingredient(
     default_unit: Option<&str>,
 ) -> Result<Ingredient, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
     let id = Uuid::new_v4().to_string();
     let normalized_name = name.trim().to_lowercase();
 
@@ -45,6 +55,9 @@ pub async fn create_ingredient(
         .execute(pool)
         .await
         .map_err(|e| AppError::Database(e.to_string()))?;
+
+    let elapsed = start.elapsed();
+    log::debug!("db::create_ingredient completed in {:?}, 1 row", elapsed);
 
     Ok(Ingredient {
         id,
@@ -61,6 +74,7 @@ pub async fn get_or_create_ingredient(
     default_unit: Option<&str>,
 ) -> Result<Ingredient, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
     let normalized_name = name.trim().to_lowercase();
 
     // Try to find existing
@@ -73,10 +87,14 @@ pub async fn get_or_create_ingredient(
     .map_err(|e| AppError::Database(e.to_string()))?;
 
     if let Some(ingredient) = existing {
+        let elapsed = start.elapsed();
+        log::debug!("db::get_or_create_ingredient completed in {:?}, found existing", elapsed);
         return Ok(ingredient);
     }
 
     // Create new
+    let elapsed = start.elapsed();
+    log::debug!("db::get_or_create_ingredient lookup completed in {:?}, creating new", elapsed);
     create_ingredient(&normalized_name, category, default_unit).await
 }
 

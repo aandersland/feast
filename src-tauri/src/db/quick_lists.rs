@@ -5,6 +5,7 @@ use crate::db::shopping_lists::{add_shopping_item, ShoppingItemInput, ShoppingLi
 use crate::error::AppError;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use std::time::Instant;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, FromRow)]
@@ -47,6 +48,7 @@ pub struct QuickListItemInput {
 /// Get all quick lists with items
 pub async fn get_quick_lists() -> Result<Vec<QuickListWithItems>, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
     let lists = sqlx::query_as::<_, QuickList>(
         "SELECT id, name, created_at, updated_at FROM quick_lists ORDER BY name",
@@ -70,12 +72,16 @@ pub async fn get_quick_lists() -> Result<Vec<QuickListWithItems>, AppError> {
         result.push(QuickListWithItems { list, items });
     }
 
+    let elapsed = start.elapsed();
+    log::debug!("db::get_quick_lists completed in {:?}, {} lists", elapsed, result.len());
+
     Ok(result)
 }
 
 /// Create a quick list
 pub async fn create_quick_list(name: &str) -> Result<QuickList, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
     let id = Uuid::new_v4().to_string();
 
     sqlx::query("INSERT INTO quick_lists (id, name) VALUES (?, ?)")
@@ -85,18 +91,26 @@ pub async fn create_quick_list(name: &str) -> Result<QuickList, AppError> {
         .await
         .map_err(|e| AppError::Database(e.to_string()))?;
 
-    sqlx::query_as::<_, QuickList>(
+    let result = sqlx::query_as::<_, QuickList>(
         "SELECT id, name, created_at, updated_at FROM quick_lists WHERE id = ?",
     )
     .bind(&id)
     .fetch_one(pool)
     .await
-    .map_err(|e| AppError::Database(e.to_string()))
+    .map_err(|e| AppError::Database(e.to_string()));
+
+    let elapsed = start.elapsed();
+    match &result {
+        Ok(_) => log::debug!("db::create_quick_list completed in {:?}, 1 row", elapsed),
+        Err(e) => log::debug!("db::create_quick_list failed in {:?}: {}", elapsed, e),
+    }
+    result
 }
 
 /// Update (rename) a quick list
 pub async fn update_quick_list(id: &str, name: &str) -> Result<QuickList, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
     let result =
         sqlx::query("UPDATE quick_lists SET name = ?, updated_at = datetime('now') WHERE id = ?")
@@ -106,24 +120,34 @@ pub async fn update_quick_list(id: &str, name: &str) -> Result<QuickList, AppErr
             .await
             .map_err(|e| AppError::Database(e.to_string()))?;
 
+    let elapsed = start.elapsed();
     if result.rows_affected() == 0 {
+        log::debug!("db::update_quick_list failed in {:?}: quick list not found", elapsed);
         return Err(AppError::NotFound(format!(
             "Quick list with id {id} not found"
         )));
     }
 
-    sqlx::query_as::<_, QuickList>(
+    let fetch_result = sqlx::query_as::<_, QuickList>(
         "SELECT id, name, created_at, updated_at FROM quick_lists WHERE id = ?",
     )
     .bind(id)
     .fetch_one(pool)
     .await
-    .map_err(|e| AppError::Database(e.to_string()))
+    .map_err(|e| AppError::Database(e.to_string()));
+
+    let total_elapsed = start.elapsed();
+    match &fetch_result {
+        Ok(_) => log::debug!("db::update_quick_list completed in {:?}, 1 row", total_elapsed),
+        Err(e) => log::debug!("db::update_quick_list failed in {:?}: {}", total_elapsed, e),
+    }
+    fetch_result
 }
 
 /// Delete a quick list
 pub async fn delete_quick_list(id: &str) -> Result<(), AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
     let result = sqlx::query("DELETE FROM quick_lists WHERE id = ?")
         .bind(id)
@@ -131,12 +155,15 @@ pub async fn delete_quick_list(id: &str) -> Result<(), AppError> {
         .await
         .map_err(|e| AppError::Database(e.to_string()))?;
 
+    let elapsed = start.elapsed();
     if result.rows_affected() == 0 {
+        log::debug!("db::delete_quick_list failed in {:?}: quick list not found", elapsed);
         return Err(AppError::NotFound(format!(
             "Quick list with id {id} not found"
         )));
     }
 
+    log::debug!("db::delete_quick_list completed in {:?}, deleted", elapsed);
     Ok(())
 }
 
@@ -146,6 +173,7 @@ pub async fn add_quick_list_item(
     input: QuickListItemInput,
 ) -> Result<QuickListItem, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
     let id = Uuid::new_v4().to_string();
 
     sqlx::query(
@@ -169,14 +197,21 @@ pub async fn add_quick_list_item(
         .await
         .map_err(|e| AppError::Database(e.to_string()))?;
 
-    sqlx::query_as::<_, QuickListItem>(
+    let result = sqlx::query_as::<_, QuickListItem>(
         "SELECT id, quick_list_id, name, quantity, unit, category
          FROM quick_list_items WHERE id = ?",
     )
     .bind(&id)
     .fetch_one(pool)
     .await
-    .map_err(|e| AppError::Database(e.to_string()))
+    .map_err(|e| AppError::Database(e.to_string()));
+
+    let elapsed = start.elapsed();
+    match &result {
+        Ok(_) => log::debug!("db::add_quick_list_item completed in {:?}, 1 row", elapsed),
+        Err(e) => log::debug!("db::add_quick_list_item failed in {:?}: {}", elapsed, e),
+    }
+    result
 }
 
 /// Update quick list item
@@ -185,6 +220,7 @@ pub async fn update_quick_list_item(
     input: QuickListItemInput,
 ) -> Result<QuickListItem, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
     let result = sqlx::query(
         "UPDATE quick_list_items SET name = ?, quantity = ?, unit = ?, category = ? WHERE id = ?",
@@ -198,25 +234,35 @@ pub async fn update_quick_list_item(
     .await
     .map_err(|e| AppError::Database(e.to_string()))?;
 
+    let elapsed = start.elapsed();
     if result.rows_affected() == 0 {
+        log::debug!("db::update_quick_list_item failed in {:?}: item not found", elapsed);
         return Err(AppError::NotFound(format!(
             "Quick list item with id {id} not found"
         )));
     }
 
-    sqlx::query_as::<_, QuickListItem>(
+    let fetch_result = sqlx::query_as::<_, QuickListItem>(
         "SELECT id, quick_list_id, name, quantity, unit, category
          FROM quick_list_items WHERE id = ?",
     )
     .bind(id)
     .fetch_one(pool)
     .await
-    .map_err(|e| AppError::Database(e.to_string()))
+    .map_err(|e| AppError::Database(e.to_string()));
+
+    let total_elapsed = start.elapsed();
+    match &fetch_result {
+        Ok(_) => log::debug!("db::update_quick_list_item completed in {:?}, 1 row", total_elapsed),
+        Err(e) => log::debug!("db::update_quick_list_item failed in {:?}: {}", total_elapsed, e),
+    }
+    fetch_result
 }
 
 /// Remove item from quick list
 pub async fn remove_quick_list_item(id: &str) -> Result<(), AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
     let result = sqlx::query("DELETE FROM quick_list_items WHERE id = ?")
         .bind(id)
@@ -224,12 +270,15 @@ pub async fn remove_quick_list_item(id: &str) -> Result<(), AppError> {
         .await
         .map_err(|e| AppError::Database(e.to_string()))?;
 
+    let elapsed = start.elapsed();
     if result.rows_affected() == 0 {
+        log::debug!("db::remove_quick_list_item failed in {:?}: item not found", elapsed);
         return Err(AppError::NotFound(format!(
             "Quick list item with id {id} not found"
         )));
     }
 
+    log::debug!("db::remove_quick_list_item completed in {:?}, deleted", elapsed);
     Ok(())
 }
 
@@ -239,6 +288,7 @@ pub async fn add_quick_list_to_shopping(
     shopping_list_id: &str,
 ) -> Result<Vec<ShoppingListItem>, AppError> {
     let pool = get_db_pool();
+    let start = Instant::now();
 
     let items = sqlx::query_as::<_, QuickListItem>(
         "SELECT id, quick_list_id, name, quantity, unit, category
@@ -261,6 +311,9 @@ pub async fn add_quick_list_to_shopping(
         let shopping_item = add_shopping_item(input).await?;
         added.push(shopping_item);
     }
+
+    let elapsed = start.elapsed();
+    log::debug!("db::add_quick_list_to_shopping completed in {:?}, {} items added", elapsed, added.len());
 
     Ok(added)
 }
