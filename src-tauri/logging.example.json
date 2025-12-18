@@ -1,0 +1,11 @@
+{
+  "default_level": "info",
+  "module_levels": {
+    "feast_lib::db": "debug",
+    "feast_lib::commands": "info",
+    "feast_lib::http": "debug"
+  },
+  "console_enabled": true,
+  "file_enabled": true,
+  "dev_mode": false
+}
