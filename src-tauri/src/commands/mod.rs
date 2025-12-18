@@ -2,6 +2,7 @@
 
 pub mod ingredients;
 pub mod items;
+pub mod logging;
 pub mod manual_items;
 pub mod meal_plans;
 pub mod quick_lists;
@@ -26,6 +27,7 @@ pub use shopping_lists::{
     get_shopping_lists, move_shopping_item, restore_shopping_item, soft_delete_shopping_item,
     update_shopping_item,
 };
+pub use logging::log_from_frontend;
 
 /// Greet a user by name
 #[command]

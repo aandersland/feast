@@ -337,3 +337,15 @@ export async function updateManualItem(
 export async function deleteManualItem(id: string): Promise<void> {
   return invoke<void>("delete_manual_item", { id });
 }
+
+// Frontend logging types and commands
+export interface FrontendLogEntry {
+  level: string;
+  message: string;
+  target: string;
+  data?: Record<string, unknown>;
+}
+
+export async function logFromFrontend(entries: FrontendLogEntry[]): Promise<void> {
+  return invoke<void>("log_from_frontend", { entries });
+}

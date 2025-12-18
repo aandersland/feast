@@ -43,6 +43,8 @@ export {
   createManualItem,
   updateManualItem,
   deleteManualItem,
+  // Logging exports
+  logFromFrontend,
 } from "./commands";
 
 export type {
@@ -62,4 +64,5 @@ export type {
   QuickListItemInput,
   ManualItem,
   ManualItemInput,
+  FrontendLogEntry,
 } from "./commands";
