@@ -46,6 +46,13 @@
   let weekDates = $derived(getWeekDates());
   const today = new Date().toISOString().split("T")[0];
 
+  // Load meal plans when week changes
+  $effect(() => {
+    const startDate = weekDates[0].date;
+    const endDate = weekDates[6].date;
+    mealPlanStore.load(startDate, endDate);
+  });
+
   function openAddModal(date: string) {
     selectedDate = date;
     isModalOpen = true;
