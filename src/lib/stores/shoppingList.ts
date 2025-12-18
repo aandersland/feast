@@ -29,6 +29,8 @@ import {
 import { toastStore } from "./toast";
 import { mealPlanStore } from "./mealPlan";
 import { recipeById } from "./recipes";
+import { log } from "$lib/logging";
+import { getCurrentCorrelationId } from "$lib/tauri/tracing";
 
 // Helper to get week start date (Monday)
 function getWeekStart(weekOffset: number = 0): string {
@@ -93,6 +95,7 @@ export const manualItemsStore = {
         isManual: true,
         sourceRecipeIds: [],
       }]);
+      log.info("Manual item added", "store::manualItems", { name: item.name }, getCurrentCorrelationId());
     } catch (e) {
       toastStore.error("Failed to add item");
       throw e;
@@ -103,6 +106,7 @@ export const manualItemsStore = {
     try {
       await deleteManualItem(id);
       manualItemsInternal.update((items) => items.filter((i) => i.id !== id));
+      log.info("Manual item removed", "store::manualItems", { id }, getCurrentCorrelationId());
     } catch (e) {
       toastStore.error("Failed to remove item");
       throw e;
@@ -176,6 +180,7 @@ export const quickListsStore = {
         ...lists,
         { id: created.id, name: created.name, items: [] },
       ]);
+      log.info("Quick list created", "store::quickLists", { name }, getCurrentCorrelationId());
     } catch (e) {
       toastStore.error("Failed to create list");
       throw e;
@@ -226,6 +231,7 @@ export const quickListsStore = {
             : l
         )
       );
+      log.info("Quick list item added", "store::quickLists", { listId, name: item.name }, getCurrentCorrelationId());
     } catch (e) {
       toastStore.error("Failed to add item");
       throw e;
@@ -368,6 +374,7 @@ export const weeklyShoppingListsStore = {
             : w
         )
       );
+      log.info("Shopping list created", "store::shoppingLists", { weekStart, name }, getCurrentCorrelationId());
     } catch (e) {
       toastStore.error("Failed to create list");
       throw e;
@@ -431,6 +438,7 @@ export const weeklyShoppingListsStore = {
           };
         })
       );
+      log.info("Shopping item added", "store::shoppingLists", { listId }, getCurrentCorrelationId());
     } catch (e) {
       toastStore.error("Failed to add item");
       throw e;
@@ -463,6 +471,7 @@ export const weeklyShoppingListsStore = {
           };
         })
       );
+      log.info("Shopping item moved", "store::shoppingLists", { itemId, toListId }, getCurrentCorrelationId());
     } catch (e) {
       toastStore.error("Failed to move item");
       throw e;

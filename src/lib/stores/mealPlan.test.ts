@@ -30,7 +30,7 @@ describe("mealPlanStore", () => {
 
     await mealPlanStore.load("2025-01-01", "2025-01-07");
 
-    expect(invoke).toHaveBeenCalledWith("get_meal_plans", { startDate: "2025-01-01", endDate: "2025-01-07" });
+    expect(invoke).toHaveBeenCalledWith("get_meal_plans", expect.objectContaining({ startDate: "2025-01-01", endDate: "2025-01-07" }));
 
     const plans = get(mealPlanStore);
     expect(plans).toHaveLength(2);
@@ -67,9 +67,9 @@ describe("mealPlanStore", () => {
     await mealPlanStore.load("2025-01-01", "2025-01-07");
     await mealPlanStore.addMeal("2025-01-01", "r2", "lunch", 2);
 
-    expect(invoke).toHaveBeenCalledWith("create_meal_plan", {
+    expect(invoke).toHaveBeenCalledWith("create_meal_plan", expect.objectContaining({
       input: { date: "2025-01-01", mealType: "lunch", recipeId: "r2", servings: 2 },
-    });
+    }));
 
     const plans = get(mealPlanStore);
     expect(plans[0].meals).toHaveLength(2);
@@ -106,7 +106,7 @@ describe("mealPlanStore", () => {
     await mealPlanStore.load("2025-01-01", "2025-01-07");
     await mealPlanStore.removeMeal("2025-01-01", "m1");
 
-    expect(invoke).toHaveBeenCalledWith("delete_meal_plan", { id: "m1" });
+    expect(invoke).toHaveBeenCalledWith("delete_meal_plan", expect.objectContaining({ id: "m1" }));
     expect(get(mealPlanStore)).toHaveLength(0);
   });
 
@@ -127,7 +127,7 @@ describe("mealPlanStore", () => {
     await mealPlanStore.load("2025-01-01", "2025-01-07");
     await mealPlanStore.updateServings("2025-01-01", "m1", 6);
 
-    expect(invoke).toHaveBeenCalledWith("update_meal_plan", { id: "m1", servings: 6 });
+    expect(invoke).toHaveBeenCalledWith("update_meal_plan", expect.objectContaining({ id: "m1", servings: 6 }));
 
     const plans = get(mealPlanStore);
     expect(plans[0].meals[0].servings).toBe(6);

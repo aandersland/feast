@@ -10,6 +10,8 @@ import {
   type RecipeInput,
 } from "$lib/tauri/commands";
 import { toastStore } from "./toast";
+import { log } from "$lib/logging";
+import { getCurrentCorrelationId } from "$lib/tauri/tracing";
 
 // Loading and error state
 export const recipesLoading = writable(false);
@@ -22,14 +24,17 @@ const { subscribe, set, update } = writable<Recipe[]>([]);
 async function loadRecipes() {
   recipesLoading.set(true);
   recipesError.set(null);
+  log.debug("Loading recipes", "store::recipes", {}, getCurrentCorrelationId());
   try {
     const rows = await getRecipes();
     // Fetch full recipe details for each (includes ingredients)
     const recipes = await Promise.all(rows.map((row) => getRecipe(row.id)));
     set(recipes);
+    log.info("Recipes loaded", "store::recipes", { count: recipes.length }, getCurrentCorrelationId());
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to load recipes";
     recipesError.set(message);
+    log.error("Failed to load recipes", "store::recipes", { error: message }, getCurrentCorrelationId());
     toastStore.error(message);
   } finally {
     recipesLoading.set(false);
@@ -66,10 +71,12 @@ export const recipeStore = {
     try {
       const created = await createRecipeCmd(toRecipeInput(recipe));
       update((recipes) => [...recipes, created]);
+      log.info("Recipe created", "store::recipes", { id: created.id, name: created.name }, getCurrentCorrelationId());
       toastStore.success("Recipe created");
       return created;
     } catch (e) {
       const message = e instanceof Error ? e.message : "Failed to create recipe";
+      log.error("Failed to create recipe", "store::recipes", { error: message }, getCurrentCorrelationId());
       toastStore.error(message);
       throw e;
     }
@@ -79,9 +86,11 @@ export const recipeStore = {
     try {
       await deleteRecipeCmd(id);
       update((recipes) => recipes.filter((r) => r.id !== id));
+      log.info("Recipe deleted", "store::recipes", { id }, getCurrentCorrelationId());
       toastStore.success("Recipe deleted");
     } catch (e) {
       const message = e instanceof Error ? e.message : "Failed to delete recipe";
+      log.error("Failed to delete recipe", "store::recipes", { id, error: message }, getCurrentCorrelationId());
       toastStore.error(message);
       throw e;
     }
@@ -95,10 +104,12 @@ export const recipeStore = {
       const input = toRecipeInput({ ...current, ...data });
       const updated = await updateRecipeCmd(id, input);
       update((recipes) => recipes.map((r) => (r.id === id ? updated : r)));
+      log.info("Recipe updated", "store::recipes", { id }, getCurrentCorrelationId());
       toastStore.success("Recipe updated");
       return updated;
     } catch (e) {
       const message = e instanceof Error ? e.message : "Failed to update recipe";
+      log.error("Failed to update recipe", "store::recipes", { id, error: message }, getCurrentCorrelationId());
       toastStore.error(message);
       throw e;
     }

@@ -1,4 +1,6 @@
 import { writable } from "svelte/store";
+import { log } from "$lib/logging";
+import { getCurrentCorrelationId } from "$lib/tauri/tracing";
 
 export interface Toast {
   id: string;
@@ -11,6 +13,7 @@ const { subscribe, update } = writable<Toast[]>([]);
 
 function addToast(toast: Omit<Toast, "id">) {
   const id = crypto.randomUUID();
+  log.debug("Toast shown", "store::toast", { type: toast.type, message: toast.message }, getCurrentCorrelationId());
   update((toasts) => [...toasts, { ...toast, id }]);
 
   const duration = toast.duration ?? 4000;

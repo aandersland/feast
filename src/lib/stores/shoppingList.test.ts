@@ -64,7 +64,7 @@ describe("manualItemsStore", () => {
     const items = get(manualItemsStore);
     expect(items[0].isOnHand).toBe(true);
     expect(items[0].isManual).toBe(true);
-    expect(invoke).toHaveBeenCalledWith("get_manual_items", { weekStart: "2025-01-01" });
+    expect(invoke).toHaveBeenCalledWith("get_manual_items", expect.objectContaining({ weekStart: "2025-01-01" }));
   });
 
   it("adds manual item via backend", async () => {
@@ -90,7 +90,7 @@ describe("manualItemsStore", () => {
       isOnHand: false,
     });
 
-    expect(invoke).toHaveBeenCalledWith("create_manual_item", {
+    expect(invoke).toHaveBeenCalledWith("create_manual_item", expect.objectContaining({
       input: {
         weekStart: "2025-01-01",
         name: "Bread",
@@ -98,7 +98,7 @@ describe("manualItemsStore", () => {
         unit: "loaf",
         category: "Bakery",
       },
-    });
+    }));
 
     const items = get(manualItemsStore);
     expect(items).toHaveLength(1);
@@ -123,7 +123,7 @@ describe("manualItemsStore", () => {
     vi.mocked(invoke).mockResolvedValueOnce(undefined);
     await manualItemsStore.remove("1");
 
-    expect(invoke).toHaveBeenCalledWith("delete_manual_item", { id: "1" });
+    expect(invoke).toHaveBeenCalledWith("delete_manual_item", expect.objectContaining({ id: "1" }));
 
     const items = get(manualItemsStore);
     expect(items).toHaveLength(0);
@@ -147,11 +147,11 @@ describe("manualItemsStore", () => {
     vi.mocked(invoke).mockResolvedValueOnce({ id: "1", isChecked: true });
     await manualItemsStore.toggleOnHand("1");
 
-    expect(invoke).toHaveBeenCalledWith("update_manual_item", {
+    expect(invoke).toHaveBeenCalledWith("update_manual_item", expect.objectContaining({
       id: "1",
       quantity: undefined,
       isChecked: true,
-    });
+    }));
 
     const items = get(manualItemsStore);
     expect(items[0].isOnHand).toBe(true);
@@ -175,11 +175,11 @@ describe("manualItemsStore", () => {
     vi.mocked(invoke).mockResolvedValueOnce({ id: "1", quantity: 2 });
     await manualItemsStore.updateQuantity("1", 2);
 
-    expect(invoke).toHaveBeenCalledWith("update_manual_item", {
+    expect(invoke).toHaveBeenCalledWith("update_manual_item", expect.objectContaining({
       id: "1",
       quantity: 2,
       isChecked: undefined,
-    });
+    }));
 
     const items = get(manualItemsStore);
     expect(items[0].quantity).toBe(2);
@@ -230,7 +230,7 @@ describe("weeklyShoppingListsStore", () => {
 
     await weeklyShoppingListsStore.load("2025-01-01");
 
-    expect(invoke).toHaveBeenCalledWith("get_shopping_lists", { weekStart: "2025-01-01" });
+    expect(invoke).toHaveBeenCalledWith("get_shopping_lists", expect.objectContaining({ weekStart: "2025-01-01" }));
   });
 
   it("creates a new custom list", async () => {
@@ -257,13 +257,13 @@ describe("weeklyShoppingListsStore", () => {
     });
     await weeklyShoppingListsStore.addList("2025-01-01", "Custom List");
 
-    expect(invoke).toHaveBeenCalledWith("create_shopping_list", {
+    expect(invoke).toHaveBeenCalledWith("create_shopping_list", expect.objectContaining({
       input: {
         weekStart: "2025-01-01",
         name: "Custom List",
         listType: "custom",
       },
-    });
+    }));
   });
 
   it("deletes a list", async () => {
@@ -290,7 +290,7 @@ describe("weeklyShoppingListsStore", () => {
     vi.mocked(invoke).mockResolvedValueOnce(undefined);
     await weeklyShoppingListsStore.removeList("2025-01-01", "list2");
 
-    expect(invoke).toHaveBeenCalledWith("delete_shopping_list", { id: "list2" });
+    expect(invoke).toHaveBeenCalledWith("delete_shopping_list", expect.objectContaining({ id: "list2" }));
   });
 
   it("adds item to a list", async () => {
@@ -325,7 +325,7 @@ describe("weeklyShoppingListsStore", () => {
       isOnHand: false,
     });
 
-    expect(invoke).toHaveBeenCalledWith("add_shopping_item", {
+    expect(invoke).toHaveBeenCalledWith("add_shopping_item", expect.objectContaining({
       input: {
         listId: "list1",
         name: "Butter",
@@ -333,7 +333,7 @@ describe("weeklyShoppingListsStore", () => {
         unit: "stick",
         category: "Dairy",
       },
-    });
+    }));
   });
 
   it("toggles item on-hand status", async () => {
@@ -364,11 +364,11 @@ describe("weeklyShoppingListsStore", () => {
     vi.mocked(invoke).mockResolvedValueOnce({ id: "item1", isChecked: true });
     await weeklyShoppingListsStore.toggleItemOnHand("2025-01-01", "list1", "item1");
 
-    expect(invoke).toHaveBeenCalledWith("update_shopping_item", {
+    expect(invoke).toHaveBeenCalledWith("update_shopping_item", expect.objectContaining({
       id: "item1",
       quantity: undefined,
       isChecked: true,
-    });
+    }));
   });
 
   it("moves item between lists", async () => {
@@ -407,10 +407,10 @@ describe("weeklyShoppingListsStore", () => {
     vi.mocked(invoke).mockResolvedValueOnce({ id: "item1", listId: "list2" });
     await weeklyShoppingListsStore.moveItem("2025-01-01", "list1", "list2", "item1");
 
-    expect(invoke).toHaveBeenCalledWith("move_shopping_item", {
+    expect(invoke).toHaveBeenCalledWith("move_shopping_item", expect.objectContaining({
       id: "item1",
       toListId: "list2",
-    });
+    }));
   });
 
   it("soft deletes an item", async () => {
@@ -441,7 +441,7 @@ describe("weeklyShoppingListsStore", () => {
     vi.mocked(invoke).mockResolvedValueOnce(undefined);
     await weeklyShoppingListsStore.softDeleteItem("2025-01-01", "list1", "item1");
 
-    expect(invoke).toHaveBeenCalledWith("soft_delete_shopping_item", { id: "item1" });
+    expect(invoke).toHaveBeenCalledWith("soft_delete_shopping_item", expect.objectContaining({ id: "item1" }));
   });
 
   it("restores a soft-deleted item", async () => {
@@ -473,7 +473,7 @@ describe("weeklyShoppingListsStore", () => {
     vi.mocked(invoke).mockResolvedValueOnce({ id: "item1", isDeleted: false });
     await weeklyShoppingListsStore.restoreItem("2025-01-01", "list1", "item1");
 
-    expect(invoke).toHaveBeenCalledWith("restore_shopping_item", { id: "item1" });
+    expect(invoke).toHaveBeenCalledWith("restore_shopping_item", expect.objectContaining({ id: "item1" }));
   });
 
   it("sets loading state during load", async () => {
@@ -517,7 +517,7 @@ describe("quickListsStore", () => {
 
     await quickListsStore.load();
 
-    expect(invoke).toHaveBeenCalledWith("get_quick_lists");
+    expect(invoke).toHaveBeenCalledWith("get_quick_lists", expect.objectContaining({}));
 
     const lists = get(quickListsStore);
     expect(lists).toHaveLength(1);
@@ -537,7 +537,7 @@ describe("quickListsStore", () => {
     });
     await quickListsStore.addList("New List");
 
-    expect(invoke).toHaveBeenCalledWith("create_quick_list", { name: "New List" });
+    expect(invoke).toHaveBeenCalledWith("create_quick_list", expect.objectContaining({ name: "New List" }));
 
     const lists = get(quickListsStore);
     expect(lists).toHaveLength(1);
@@ -559,7 +559,7 @@ describe("quickListsStore", () => {
     vi.mocked(invoke).mockResolvedValueOnce(undefined);
     await quickListsStore.removeList("ql1");
 
-    expect(invoke).toHaveBeenCalledWith("delete_quick_list", { id: "ql1" });
+    expect(invoke).toHaveBeenCalledWith("delete_quick_list", expect.objectContaining({ id: "ql1" }));
 
     const lists = get(quickListsStore);
     expect(lists).toHaveLength(0);
@@ -580,7 +580,7 @@ describe("quickListsStore", () => {
     vi.mocked(invoke).mockResolvedValueOnce({ id: "ql1", name: "New Name" });
     await quickListsStore.renameList("ql1", "New Name");
 
-    expect(invoke).toHaveBeenCalledWith("update_quick_list", { id: "ql1", name: "New Name" });
+    expect(invoke).toHaveBeenCalledWith("update_quick_list", expect.objectContaining({ id: "ql1", name: "New Name" }));
 
     const lists = get(quickListsStore);
     expect(lists[0].name).toBe("New Name");
@@ -613,7 +613,7 @@ describe("quickListsStore", () => {
       category: "Spices",
     });
 
-    expect(invoke).toHaveBeenCalledWith("add_quick_list_item", {
+    expect(invoke).toHaveBeenCalledWith("add_quick_list_item", expect.objectContaining({
       quickListId: "ql1",
       input: {
         name: "Salt",
@@ -621,7 +621,7 @@ describe("quickListsStore", () => {
         unit: "container",
         category: "Spices",
       },
-    });
+    }));
 
     const lists = get(quickListsStore);
     expect(lists[0].items).toHaveLength(1);
@@ -652,7 +652,7 @@ describe("quickListsStore", () => {
     vi.mocked(invoke).mockResolvedValueOnce(undefined);
     await quickListsStore.removeItem("ql1", "qli1");
 
-    expect(invoke).toHaveBeenCalledWith("remove_quick_list_item", { id: "qli1" });
+    expect(invoke).toHaveBeenCalledWith("remove_quick_list_item", expect.objectContaining({ id: "qli1" }));
 
     const lists = get(quickListsStore);
     expect(lists[0].items).toHaveLength(0);
@@ -689,7 +689,7 @@ describe("quickListsStore", () => {
     });
     await quickListsStore.updateItem("ql1", "qli1", { quantity: 2 });
 
-    expect(invoke).toHaveBeenCalledWith("update_quick_list_item", {
+    expect(invoke).toHaveBeenCalledWith("update_quick_list_item", expect.objectContaining({
       id: "qli1",
       input: {
         name: "Salt",
@@ -697,7 +697,7 @@ describe("quickListsStore", () => {
         unit: "container",
         category: "Spices",
       },
-    });
+    }));
 
     const lists = get(quickListsStore);
     expect(lists[0].items[0].quantity).toBe(2);
@@ -733,9 +733,9 @@ describe("quickListsStore", () => {
 
     await quickListsStore.addToShoppingList("ql1", "sl1");
 
-    expect(invoke).toHaveBeenCalledWith("add_quick_list_to_shopping", {
+    expect(invoke).toHaveBeenCalledWith("add_quick_list_to_shopping", expect.objectContaining({
       quickListId: "ql1",
       shoppingListId: "sl1",
-    });
+    }));
   });
 });

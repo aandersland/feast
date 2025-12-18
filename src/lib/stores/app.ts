@@ -1,4 +1,6 @@
 import { writable } from "svelte/store";
+import { log } from "$lib/logging";
+import { getCurrentCorrelationId } from "$lib/tauri/tracing";
 
 interface AppState {
   appName: string;
@@ -13,7 +15,10 @@ function createAppStore() {
 
   return {
     subscribe,
-    setVersion: (version: string) => update((state) => ({ ...state, version })),
+    setVersion: (version: string) => {
+      log.info("App version set", "store::app", { version }, getCurrentCorrelationId());
+      update((state) => ({ ...state, version }));
+    },
   };
 }
 

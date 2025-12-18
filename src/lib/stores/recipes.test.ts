@@ -42,8 +42,8 @@ describe("recipeStore", () => {
 
     await recipeStore.load();
 
-    expect(invoke).toHaveBeenCalledWith("get_recipes");
-    expect(invoke).toHaveBeenCalledWith("get_recipe", { id: "1" });
+    expect(invoke).toHaveBeenCalledWith("get_recipes", expect.objectContaining({}));
+    expect(invoke).toHaveBeenCalledWith("get_recipe", expect.objectContaining({ id: "1" }));
     expect(get(recipeStore)).toEqual([mockRecipe]);
     expect(get(recipesLoading)).toBe(false);
   });
@@ -85,7 +85,7 @@ describe("recipeStore", () => {
     vi.mocked(invoke).mockResolvedValueOnce(undefined);
     await recipeStore.remove("1");
 
-    expect(invoke).toHaveBeenCalledWith("delete_recipe", { id: "1" });
+    expect(invoke).toHaveBeenCalledWith("delete_recipe", expect.objectContaining({ id: "1" }));
     expect(get(recipeStore)).toEqual([]);
   });
 

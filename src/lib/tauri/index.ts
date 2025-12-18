@@ -66,3 +66,11 @@ export type {
   ManualItemInput,
   FrontendLogEntry,
 } from "./commands";
+
+// Tracing exports
+export {
+  generateCorrelationId,
+  getCurrentCorrelationId,
+  setCurrentCorrelationId,
+  tracedInvoke,
+} from "./tracing";

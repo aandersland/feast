@@ -20,6 +20,7 @@
  */
 
 import { logFromFrontend, type FrontendLogEntry } from "$lib/tauri/commands";
+import { getCurrentCorrelationId } from "$lib/tauri/tracing";
 
 type LogLevel = "trace" | "debug" | "info" | "warn" | "error";
 
@@ -68,36 +69,61 @@ class Logger {
   /**
    * Log at trace level (most verbose)
    */
-  trace(message: string, target = "frontend", data?: Record<string, unknown>): void {
-    this.log("trace", message, target, data);
+  trace(
+    message: string,
+    target = "frontend",
+    data?: Record<string, unknown>,
+    correlationId?: string
+  ): void {
+    this.log("trace", message, target, data, correlationId);
   }
 
   /**
    * Log at debug level
    */
-  debug(message: string, target = "frontend", data?: Record<string, unknown>): void {
-    this.log("debug", message, target, data);
+  debug(
+    message: string,
+    target = "frontend",
+    data?: Record<string, unknown>,
+    correlationId?: string
+  ): void {
+    this.log("debug", message, target, data, correlationId);
   }
 
   /**
    * Log at info level
    */
-  info(message: string, target = "frontend", data?: Record<string, unknown>): void {
-    this.log("info", message, target, data);
+  info(
+    message: string,
+    target = "frontend",
+    data?: Record<string, unknown>,
+    correlationId?: string
+  ): void {
+    this.log("info", message, target, data, correlationId);
   }
 
   /**
    * Log at warn level
    */
-  warn(message: string, target = "frontend", data?: Record<string, unknown>): void {
-    this.log("warn", message, target, data);
+  warn(
+    message: string,
+    target = "frontend",
+    data?: Record<string, unknown>,
+    correlationId?: string
+  ): void {
+    this.log("warn", message, target, data, correlationId);
   }
 
   /**
    * Log at error level
    */
-  error(message: string, target = "frontend", data?: Record<string, unknown>): void {
-    this.log("error", message, target, data);
+  error(
+    message: string,
+    target = "frontend",
+    data?: Record<string, unknown>,
+    correlationId?: string
+  ): void {
+    this.log("error", message, target, data, correlationId);
   }
 
   /**
@@ -137,12 +163,16 @@ class Logger {
     level: LogLevel,
     message: string,
     target: string,
-    data?: Record<string, unknown>
+    data?: Record<string, unknown>,
+    correlationId?: string
   ): void {
     // Check minimum level
     if (LOG_LEVEL_PRIORITY[level] < LOG_LEVEL_PRIORITY[this.config.minLevel]) {
       return;
     }
+
+    // Auto-fetch correlation ID from tracing context if not provided
+    const cid = correlationId ?? getCurrentCorrelationId();
 
     // Format target with frontend prefix
     const fullTarget = target.startsWith("frontend::") ? target : `frontend::${target}`;
@@ -151,12 +181,13 @@ class Logger {
       level,
       message,
       target: fullTarget,
+      ...(cid ? { correlationId: cid } : {}),
       ...(data && Object.keys(data).length > 0 ? { data } : {}),
     };
 
     // Console output in development
     if (this.config.consoleEnabled) {
-      this.logToConsole(level, message, fullTarget, data);
+      this.logToConsole(level, message, fullTarget, data, cid);
     }
 
     // Queue for backend
@@ -174,10 +205,12 @@ class Logger {
     level: LogLevel,
     message: string,
     target: string,
-    data?: Record<string, unknown>
+    data?: Record<string, unknown>,
+    correlationId?: string
   ): void {
     const timestamp = new Date().toISOString();
-    const prefix = `[${timestamp}] [${level.toUpperCase()}] [${target}]`;
+    const cidPart = correlationId ? ` [${correlationId}]` : "";
+    const prefix = `[${timestamp}] [${level.toUpperCase()}] [${target}]${cidPart}`;
 
     const consoleMethod = level === "error" ? "error" : level === "warn" ? "warn" : "log";
 
