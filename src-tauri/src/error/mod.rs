@@ -15,6 +15,9 @@ pub enum AppError {
     #[error("Validation error: {0}")]
     Validation(String),
 
+    #[error("Conflict: {0}")]
+    Conflict(String),
+
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 }
@@ -39,6 +42,10 @@ impl From<&AppError> for ErrorResponse {
             },
             AppError::Validation(msg) => ErrorResponse {
                 code: "VALIDATION_ERROR".to_string(),
+                message: msg.clone(),
+            },
+            AppError::Conflict(msg) => ErrorResponse {
+                code: "CONFLICT".to_string(),
                 message: msg.clone(),
             },
             AppError::Io(_) => ErrorResponse {

@@ -27,6 +27,24 @@ pub struct MealPlanInput {
     pub servings: i64,
 }
 
+/// Format a date string (YYYY-MM-DD) for display (e.g., "Jan 15")
+fn format_date_for_display(date: &str) -> String {
+    let months = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+
+    let parts: Vec<&str> = date.split('-').collect();
+    if parts.len() == 3 {
+        if let (Ok(month), Ok(day)) = (parts[1].parse::<usize>(), parts[2].parse::<u32>()) {
+            if month >= 1 && month <= 12 {
+                return format!("{} {}", months[month - 1], day);
+            }
+        }
+    }
+    // Fallback to original date if parsing fails
+    date.to_string()
+}
+
 /// Get meal plans for a date range
 pub async fn get_meal_plans(start_date: &str, end_date: &str) -> Result<Vec<MealPlan>, AppError> {
     let pool = get_db_pool();
@@ -83,7 +101,20 @@ pub async fn create_meal_plan(input: MealPlanInput) -> Result<MealPlan, AppError
     .bind(input.servings)
     .execute(pool)
     .await
-    .map_err(|e| AppError::Database(e.to_string()))?;
+    .map_err(|e| {
+        // Check for UNIQUE constraint violation
+        if let sqlx::Error::Database(db_err) = &e {
+            if db_err.message().contains("UNIQUE constraint failed") {
+                // Format date for display (e.g., "2025-01-15" -> "Jan 15")
+                let display_date = format_date_for_display(&input.date);
+                return AppError::Conflict(format!(
+                    "This recipe is already on your meal plan for {} on {}",
+                    input.meal_type, display_date
+                ));
+            }
+        }
+        AppError::Database(e.to_string())
+    })?;
 
     let result = sqlx::query_as::<_, MealPlan>(
         "SELECT id, date, meal_type, recipe_id, servings, created_at
@@ -222,5 +253,50 @@ mod tests {
 
         let plans = get_meal_plans("2025-02-13", "2025-02-15").await.unwrap();
         assert_eq!(plans.len(), 3); // Only dates in range
+    }
+
+    #[tokio::test]
+    async fn test_create_duplicate_meal_plan_returns_friendly_error() {
+        init_db_for_test().await;
+        let recipe_id = create_test_recipe().await;
+
+        let input = MealPlanInput {
+            date: "2025-03-17".to_string(),
+            meal_type: "dinner".to_string(),
+            recipe_id: recipe_id.clone(),
+            servings: 2,
+        };
+
+        // First creation should succeed
+        create_meal_plan(input.clone()).await.unwrap();
+
+        // Second creation should fail with a user-friendly error
+        let result = create_meal_plan(input).await;
+        assert!(result.is_err());
+
+        let err = result.unwrap_err();
+        match err {
+            AppError::Conflict(msg) => {
+                assert!(
+                    msg.contains("dinner"),
+                    "Error should mention meal type: {}",
+                    msg
+                );
+                assert!(
+                    msg.contains("Mar 17"),
+                    "Error should contain formatted date: {}",
+                    msg
+                );
+            }
+            _ => panic!("Expected Conflict error, got: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_format_date_for_display() {
+        assert_eq!(format_date_for_display("2025-01-15"), "Jan 15");
+        assert_eq!(format_date_for_display("2025-12-25"), "Dec 25");
+        assert_eq!(format_date_for_display("2025-03-01"), "Mar 1");
+        assert_eq!(format_date_for_display("invalid"), "invalid");
     }
 }
