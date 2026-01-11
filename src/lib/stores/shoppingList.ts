@@ -31,6 +31,7 @@ import { mealPlanStore } from "./mealPlan";
 import { recipeById } from "./recipes";
 import { log } from "$lib/logging";
 import { getCurrentCorrelationId } from "$lib/tauri/tracing";
+import { aggregateQuantities, normalizeUnit } from "$lib/utils/units";
 
 // Helper to get week start date (Monday)
 function getWeekStart(weekOffset: number = 0): string {
@@ -634,7 +635,15 @@ export const weeklyShoppingListsStore = {
 export const aggregatedShoppingList = derived(
   [mealPlanStore, recipeById, manualItemsInternal],
   ([$mealPlans, $recipeMap, $manualItems]) => {
-    const aggregated = new Map<string, ShoppingItem>();
+    // First pass: group by ingredient name only, collecting all quantities and units
+    const byName = new Map<
+      string,
+      {
+        name: string;
+        quantities: Array<{ quantity: number; unit: string }>;
+        sourceRecipeIds: string[];
+      }
+    >();
 
     // Aggregate from meal plans
     $mealPlans.forEach((plan) => {
@@ -645,23 +654,21 @@ export const aggregatedShoppingList = derived(
         const multiplier = meal.servings / recipe.servings;
 
         recipe.ingredients.forEach((ing) => {
-          const key = `${ing.name.toLowerCase()}-${ing.unit}`;
-          const existing = aggregated.get(key);
+          const key = ing.name.toLowerCase();
+          const existing = byName.get(key);
 
           if (existing) {
-            existing.quantity += ing.quantity * multiplier;
+            existing.quantities.push({
+              quantity: ing.quantity * multiplier,
+              unit: ing.unit,
+            });
             if (!existing.sourceRecipeIds.includes(recipe.id)) {
               existing.sourceRecipeIds.push(recipe.id);
             }
           } else {
-            aggregated.set(key, {
-              id: key,
+            byName.set(key, {
               name: ing.name,
-              quantity: ing.quantity * multiplier,
-              unit: ing.unit,
-              category: "Grocery", // Default category
-              isOnHand: false,
-              isManual: false,
+              quantities: [{ quantity: ing.quantity * multiplier, unit: ing.unit }],
               sourceRecipeIds: [recipe.id],
             });
           }
@@ -669,8 +676,30 @@ export const aggregatedShoppingList = derived(
       });
     });
 
+    // Second pass: aggregate quantities with unit conversion
+    const results: ShoppingItem[] = [];
+
+    for (const [key, { name, quantities, sourceRecipeIds }] of byName) {
+      const aggregated = aggregateQuantities(quantities);
+
+      // Each aggregated result becomes a shopping item
+      // (usually 1, but can be multiple if incompatible units like cups + pounds)
+      aggregated.forEach((agg, idx) => {
+        results.push({
+          id: idx === 0 ? key : `${key}-${agg.unit}`,
+          name,
+          quantity: agg.quantity,
+          unit: agg.unit,
+          category: "Grocery", // Default category
+          isOnHand: false,
+          isManual: false,
+          sourceRecipeIds,
+        });
+      });
+    }
+
     // Combine with manual items
-    return [...Array.from(aggregated.values()), ...$manualItems];
+    return [...results, ...$manualItems];
   }
 );
 
@@ -709,7 +738,15 @@ export function createWeekAggregatedList(weekOffset: number) {
       weekEnd.setDate(weekEnd.getDate() + 6);
       const weekEndStr = weekEnd.toISOString().split("T")[0];
 
-      const aggregated = new Map<string, ShoppingItem>();
+      // First pass: group by ingredient name only, collecting all quantities and units
+      const byName = new Map<
+        string,
+        {
+          name: string;
+          quantities: Array<{ quantity: number; unit: string }>;
+          sourceRecipeIds: string[];
+        }
+      >();
 
       // Filter meal plans for this week only
       $mealPlans
@@ -722,23 +759,21 @@ export function createWeekAggregatedList(weekOffset: number) {
             const multiplier = meal.servings / recipe.servings;
 
             recipe.ingredients.forEach((ing) => {
-              const key = `${ing.name.toLowerCase()}-${ing.unit}`;
-              const existing = aggregated.get(key);
+              const key = ing.name.toLowerCase();
+              const existing = byName.get(key);
 
               if (existing) {
-                existing.quantity += ing.quantity * multiplier;
+                existing.quantities.push({
+                  quantity: ing.quantity * multiplier,
+                  unit: ing.unit,
+                });
                 if (!existing.sourceRecipeIds.includes(recipe.id)) {
                   existing.sourceRecipeIds.push(recipe.id);
                 }
               } else {
-                aggregated.set(key, {
-                  id: key,
+                byName.set(key, {
                   name: ing.name,
-                  quantity: ing.quantity * multiplier,
-                  unit: ing.unit,
-                  category: "Other", // Ingredient type doesn't have category
-                  isOnHand: false,
-                  isManual: false,
+                  quantities: [{ quantity: ing.quantity * multiplier, unit: ing.unit }],
                   sourceRecipeIds: [recipe.id],
                 });
               }
@@ -746,7 +781,29 @@ export function createWeekAggregatedList(weekOffset: number) {
           });
         });
 
-      return Array.from(aggregated.values());
+      // Second pass: aggregate quantities with unit conversion
+      const results: ShoppingItem[] = [];
+
+      for (const [key, { name, quantities, sourceRecipeIds }] of byName) {
+        const aggregated = aggregateQuantities(quantities);
+
+        // Each aggregated result becomes a shopping item
+        // (usually 1, but can be multiple if incompatible units like cups + pounds)
+        aggregated.forEach((agg, idx) => {
+          results.push({
+            id: idx === 0 ? key : `${key}-${agg.unit}`,
+            name,
+            quantity: agg.quantity,
+            unit: agg.unit,
+            category: "Other", // Ingredient type doesn't have category
+            isOnHand: false,
+            isManual: false,
+            sourceRecipeIds,
+          });
+        });
+      }
+
+      return results;
     }
   );
 }

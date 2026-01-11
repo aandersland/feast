@@ -1,8 +1,22 @@
 <script lang="ts">
+  import { onMount, tick } from "svelte";
   import MealPlanCalendar from "./mealplan/MealPlanCalendar.svelte";
   import ShoppingSection from "./shopping/ShoppingSection.svelte";
+  import { consumeScrollTarget, SCROLL_TARGETS } from "$lib/stores/navigation";
 
   let weekOffset = $state(0);
+
+  onMount(async () => {
+    // Check if we should scroll to a specific section
+    const target = consumeScrollTarget();
+    if (target) {
+      await tick(); // Wait for DOM to update
+      const element = document.getElementById(target);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+  });
 
   function getWeekLabel(offset: number): string {
     const today = new Date();
@@ -57,7 +71,7 @@
   </div>
 
   <!-- Shopping Section -->
-  <div class="mt-8 pt-8 border-t border-gray-200">
+  <div id={SCROLL_TARGETS.SHOPPING_SECTION} class="mt-8 pt-8 border-t border-gray-200">
     <ShoppingSection {weekOffset} />
   </div>
 </div>

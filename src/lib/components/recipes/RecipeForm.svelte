@@ -9,31 +9,50 @@
 
   let { recipe = null, onSave, onCancel }: Props = $props();
 
-  let name = $state(recipe?.name ?? "");
-  let description = $state(recipe?.description ?? "");
-  let prepTime = $state(recipe?.prepTime ?? 15);
-  let cookTime = $state(recipe?.cookTime ?? 30);
-  let servings = $state(recipe?.servings ?? 4);
-  let ingredients = $state<Omit<Ingredient, "id">[]>(
-    recipe?.ingredients.map(({ id, ...rest }) => rest) ?? [{ name: "", quantity: 1, unit: "" }]
-  );
-  let instructions = $state(recipe?.instructions ? [...recipe.instructions] : [""]);
-  let tags = $state(recipe?.tags.join(", ") ?? "");
-  let notes = $state(recipe?.notes ?? "");
-  let sourceUrl = $state(recipe?.sourceUrl ?? "");
+  // Initialize with defaults - $effect will sync from recipe prop
+  let name = $state("");
+  let description = $state("");
+  let prepTime = $state(15);
+  let cookTime = $state(30);
+  let servings = $state(4);
+  let ingredients = $state<Omit<Ingredient, "id">[]>([{ name: "", quantity: 1, unit: "" }]);
+  let instructions = $state<string[]>([""]);
+  let tags = $state("");
+  let notes = $state("");
+  let sourceUrl = $state("");
+
+  // Track recipe ID to detect when we're editing a different recipe
+  let currentRecipeId = $state<string | null>(null);
 
   $effect(() => {
-    if (recipe) {
-      name = recipe.name;
-      description = recipe.description;
-      prepTime = recipe.prepTime;
-      cookTime = recipe.cookTime;
-      servings = recipe.servings;
-      ingredients = recipe.ingredients.map(({ id, ...rest }) => rest);
-      instructions = [...recipe.instructions];
-      tags = recipe.tags.join(", ");
-      notes = recipe.notes ?? "";
-      sourceUrl = recipe.sourceUrl ?? "";
+    const recipeId = recipe?.id ?? null;
+    // Reset form when recipe changes (including initial mount with recipe)
+    if (recipeId !== currentRecipeId) {
+      currentRecipeId = recipeId;
+      if (recipe) {
+        name = recipe.name;
+        description = recipe.description;
+        prepTime = recipe.prepTime;
+        cookTime = recipe.cookTime;
+        servings = recipe.servings;
+        ingredients = recipe.ingredients.map(({ id, ...rest }) => rest);
+        instructions = [...recipe.instructions];
+        tags = recipe.tags.join(", ");
+        notes = recipe.notes ?? "";
+        sourceUrl = recipe.sourceUrl ?? "";
+      } else {
+        // Reset to defaults for new recipe
+        name = "";
+        description = "";
+        prepTime = 15;
+        cookTime = 30;
+        servings = 4;
+        ingredients = [{ name: "", quantity: 1, unit: "" }];
+        instructions = [""];
+        tags = "";
+        notes = "";
+        sourceUrl = "";
+      }
     }
   });
 
@@ -76,56 +95,66 @@
 
   <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="space-y-6">
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Recipe Name</label>
-      <input
-        type="text"
-        bind:value={name}
-        required
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-      />
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Recipe Name
+        <input
+          type="text"
+          bind:value={name}
+          required
+          class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+        />
+      </label>
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-      <textarea
-        bind:value={description}
-        rows="2"
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-      ></textarea>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Description
+        <textarea
+          bind:value={description}
+          rows="2"
+          class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+        ></textarea>
+      </label>
     </div>
 
     <div class="grid grid-cols-3 gap-4">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Prep Time (min)</label>
-        <input
-          type="number"
-          bind:value={prepTime}
-          min="0"
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-        />
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Prep Time (min)
+          <input
+            type="number"
+            bind:value={prepTime}
+            min="0"
+            class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          />
+        </label>
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Cook Time (min)</label>
-        <input
-          type="number"
-          bind:value={cookTime}
-          min="0"
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-        />
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Cook Time (min)
+          <input
+            type="number"
+            bind:value={cookTime}
+            min="0"
+            class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          />
+        </label>
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Servings</label>
-        <input
-          type="number"
-          bind:value={servings}
-          min="1"
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-        />
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Servings
+          <input
+            type="number"
+            bind:value={servings}
+            min="1"
+            class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          />
+        </label>
       </div>
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-2">Ingredients</label>
+      <span class="block text-sm font-medium text-gray-700 mb-2">Ingredients</span>
       <div class="space-y-2">
         {#each ingredients as ing, i}
           <div class="flex gap-2">
@@ -170,7 +199,7 @@
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-2">Instructions</label>
+      <span class="block text-sm font-medium text-gray-700 mb-2">Instructions</span>
       <div class="space-y-2">
         {#each instructions as step, i}
           <div class="flex gap-2">
@@ -204,32 +233,38 @@
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Tags (comma-separated)</label>
-      <input
-        type="text"
-        bind:value={tags}
-        placeholder="Italian, Pasta, Quick"
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-      />
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Tags (comma-separated)
+        <input
+          type="text"
+          bind:value={tags}
+          placeholder="Italian, Pasta, Quick"
+          class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+        />
+      </label>
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Source URL (optional)</label>
-      <input
-        type="url"
-        bind:value={sourceUrl}
-        placeholder="https://..."
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-      />
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Source URL (optional)
+        <input
+          type="url"
+          bind:value={sourceUrl}
+          placeholder="https://..."
+          class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+        />
+      </label>
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
-      <textarea
-        bind:value={notes}
-        rows="2"
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-      ></textarea>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Notes (optional)
+        <textarea
+          bind:value={notes}
+          rows="2"
+          class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+        ></textarea>
+      </label>
     </div>
 
     <div class="flex justify-end gap-3 pt-4 border-t">

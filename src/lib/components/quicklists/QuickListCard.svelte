@@ -12,7 +12,8 @@
 
   let isExpanded = $state(false);
   let isEditingName = $state(false);
-  let editedName = $state(list.name);
+  // Initialize with default - startEditName() sets actual value before showing edit UI
+  let editedName = $state("");
 
   function toggleExpand() {
     isExpanded = !isExpanded;

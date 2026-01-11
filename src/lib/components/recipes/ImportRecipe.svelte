@@ -50,15 +50,17 @@
 
   <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="space-y-4">
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Recipe URL</label>
-      <input
-        type="url"
-        bind:value={url}
-        disabled={isLoading}
-        required
-        placeholder="https://www.example.com/recipe/..."
-        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-      />
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Recipe URL
+        <input
+          type="url"
+          bind:value={url}
+          disabled={isLoading}
+          required
+          placeholder="https://www.example.com/recipe/..."
+          class="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+        />
+      </label>
       {#if error}
         <p class="mt-2 text-sm text-red-600">{error}</p>
       {/if}

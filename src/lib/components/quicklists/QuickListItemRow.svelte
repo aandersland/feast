@@ -10,10 +10,11 @@
   let { item, onUpdate, onRemove }: Props = $props();
 
   let isEditing = $state(false);
-  let editQuantity = $state(item.quantity);
-  let editUnit = $state(item.unit);
-  let editName = $state(item.name);
-  let editCategory = $state(item.category);
+  // Initialize with defaults - startEdit() sets actual values before showing edit UI
+  let editQuantity = $state(0);
+  let editUnit = $state("");
+  let editName = $state("");
+  let editCategory = $state("");
 
   const categories = [
     "Produce",

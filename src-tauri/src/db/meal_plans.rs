@@ -36,7 +36,7 @@ fn format_date_for_display(date: &str) -> String {
     let parts: Vec<&str> = date.split('-').collect();
     if parts.len() == 3 {
         if let (Ok(month), Ok(day)) = (parts[1].parse::<usize>(), parts[2].parse::<u32>()) {
-            if month >= 1 && month <= 12 {
+            if (1..=12).contains(&month) {
                 return format!("{} {}", months[month - 1], day);
             }
         }

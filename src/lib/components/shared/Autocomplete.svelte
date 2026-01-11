@@ -11,7 +11,6 @@
 
   let query = $state("");
   let isOpen = $state(false);
-  let inputRef: HTMLInputElement;
 
   let filteredOptions = $derived(
     query.length > 0
@@ -57,7 +56,6 @@
     </div>
   {:else}
     <input
-      bind:this={inputRef}
       type="text"
       bind:value={query}
       onfocus={handleInputFocus}

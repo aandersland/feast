@@ -92,8 +92,8 @@
           </button>
         </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Meal Type</label>
+        <fieldset>
+          <legend class="block text-sm font-medium text-gray-700 mb-2">Meal Type</legend>
           <div class="grid grid-cols-4 gap-2">
             {#each mealTypes as mt}
               <button
@@ -108,10 +108,10 @@
               </button>
             {/each}
           </div>
-        </div>
+        </fieldset>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Servings</label>
+        <fieldset>
+          <legend class="block text-sm font-medium text-gray-700 mb-2">Servings</legend>
           <div class="flex items-center gap-3">
             <button
               type="button"
@@ -131,7 +131,7 @@
               +
             </button>
           </div>
-        </div>
+        </fieldset>
 
         <button
           type="button"

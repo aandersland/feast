@@ -465,6 +465,8 @@ mod tests {
     async fn test_delete_recipe_cascades() {
         init_db_for_test().await;
 
+        // Use unique ingredient name to avoid conflicts with other tests
+        let ingredient_name = format!("Ingredient_{}", Uuid::new_v4());
         let input = RecipeInput {
             name: "To Delete".to_string(),
             description: "".to_string(),
@@ -476,7 +478,7 @@ mod tests {
             notes: None,
             tags: vec![],
             ingredients: vec![IngredientInput {
-                name: "Ingredient".to_string(),
+                name: ingredient_name,
                 quantity: 1.0,
                 unit: "cup".to_string(),
                 category: None,
@@ -537,6 +539,9 @@ mod tests {
     async fn test_update_recipe_instructions() {
         init_db_for_test().await;
 
+        // Use unique ingredient name to avoid conflicts with other tests
+        let ingredient_name = format!("Update_Ingredient_{}", Uuid::new_v4());
+
         // Create recipe with initial instructions
         let input = RecipeInput {
             name: "Update Instructions Test".to_string(),
@@ -549,7 +554,7 @@ mod tests {
             notes: None,
             tags: vec![],
             ingredients: vec![IngredientInput {
-                name: "Ingredient".to_string(),
+                name: ingredient_name.clone(),
                 quantity: 1.0,
                 unit: "cup".to_string(),
                 category: None,
@@ -573,7 +578,7 @@ mod tests {
             notes: None,
             tags: vec![],
             ingredients: vec![IngredientInput {
-                name: "Ingredient".to_string(),
+                name: ingredient_name,
                 quantity: 1.0,
                 unit: "cup".to_string(),
                 category: None,

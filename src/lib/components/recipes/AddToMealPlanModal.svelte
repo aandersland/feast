@@ -38,34 +38,40 @@
       <p class="text-gray-600">Add <strong>{recipe.name}</strong> to your meal plan.</p>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-        <input
-          type="date"
-          bind:value={selectedDate}
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-        />
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Date
+          <input
+            type="date"
+            bind:value={selectedDate}
+            class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          />
+        </label>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Meal</label>
-        <select
-          bind:value={selectedMealType}
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-        >
-          {#each mealTypes as type}
-            <option value={type} class="capitalize">{type}</option>
-          {/each}
-        </select>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Meal
+          <select
+            bind:value={selectedMealType}
+            class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          >
+            {#each mealTypes as type}
+              <option value={type} class="capitalize">{type}</option>
+            {/each}
+          </select>
+        </label>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Servings</label>
-        <input
-          type="number"
-          bind:value={servings}
-          min="1"
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-        />
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Servings
+          <input
+            type="number"
+            bind:value={servings}
+            min="1"
+            class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          />
+        </label>
       </div>
 
       <div class="flex justify-end gap-2 pt-4">
