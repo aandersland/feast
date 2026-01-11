@@ -4,6 +4,14 @@
 for issue tracking. Use `bd` commands instead of markdown TODOs.
 See AGENTS.md for workflow details.
 
+**NOTE** This project uses Local speech-to-text
+We have a local transcription command:
+
+- `whisper-tx <audio-file> [--translate] [--out <file>]`
+  Examples:
+- `whisper-tx ./audio.wav --out ./audio.txt`
+- `whisper-tx ./audio.wav --translate --out ./audio.en.txt`
+
 This file provides guidance to Claude Code when working with this repository.
 
 ## Project Overview
