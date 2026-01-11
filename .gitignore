@@ -46,11 +46,4 @@ pnpm-debug.log*
 # Claude Code
 .claude/settings.local.json
 
-# Beads
-.gitattributes
-.beads/*
-copilot-instructions.md
-@AGENTS.md
-AGENTS.md
-
 ai_docs/
