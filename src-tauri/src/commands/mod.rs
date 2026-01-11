@@ -1,5 +1,6 @@
 //! Tauri command handlers
 
+pub mod export;
 pub mod ingredients;
 pub mod items;
 pub mod logging;
@@ -31,6 +32,7 @@ pub use shopping_lists::{
     update_shopping_item,
 };
 pub use logging::log_from_frontend;
+pub use export::export_all_data;
 
 /// Greet a user by name
 #[command]

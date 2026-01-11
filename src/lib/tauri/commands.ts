@@ -351,3 +351,22 @@ export interface FrontendLogEntry {
 export async function logFromFrontend(entries: FrontendLogEntry[]): Promise<void> {
   return invoke<void>("log_from_frontend", { entries });
 }
+
+// Data export types and commands (for migration to web version)
+export interface FeastExport {
+  version: string;
+  exportedAt: string;
+  recipes: Recipe[];
+  mealPlans: MealPlanRow[];
+  shoppingLists: ShoppingListWithItems[];
+  quickLists: QuickListWithItems[];
+  manualItems: ManualItem[];
+}
+
+/**
+ * Export all data for migration to the web version.
+ * Returns a JSON object that can be saved to a file.
+ */
+export async function exportAllData(): Promise<FeastExport> {
+  return tracedInvoke<FeastExport>("export_all_data");
+}

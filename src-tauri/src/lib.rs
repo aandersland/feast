@@ -15,12 +15,12 @@ use commands::{
     add_quick_list_item, add_quick_list_to_shopping, add_shopping_item, create_ingredient,
     create_item, create_manual_item, create_meal_plan, create_quick_list, create_recipe,
     create_shopping_list, delete_item, delete_manual_item, delete_meal_plan, delete_quick_list,
-    delete_recipe, delete_shopping_list, get_aggregated_shopping_list, get_ingredients, get_items,
-    get_manual_items, get_meal_plans, get_or_create_ingredient, get_quick_lists, get_recipe,
-    get_recipes, get_shopping_lists, greet, import_recipe_from_url, log_from_frontend,
-    move_shopping_item, remove_quick_list_item, restore_shopping_item, soft_delete_shopping_item,
-    update_manual_item, update_meal_plan, update_quick_list, update_quick_list_item, update_recipe,
-    update_shopping_item,
+    delete_recipe, delete_shopping_list, export_all_data, get_aggregated_shopping_list,
+    get_ingredients, get_items, get_manual_items, get_meal_plans, get_or_create_ingredient,
+    get_quick_lists, get_recipe, get_recipes, get_shopping_lists, greet, import_recipe_from_url,
+    log_from_frontend, move_shopping_item, remove_quick_list_item, restore_shopping_item,
+    soft_delete_shopping_item, update_manual_item, update_meal_plan, update_quick_list,
+    update_quick_list_item, update_recipe, update_shopping_item,
 };
 use tauri::Manager;
 
@@ -152,6 +152,8 @@ pub fn run() {
             create_manual_item,
             update_manual_item,
             delete_manual_item,
+            // Export command (for migration to web version)
+            export_all_data,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
